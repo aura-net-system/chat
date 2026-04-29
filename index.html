@@ -692,6 +692,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
         <div style="margin-bottom:12px">
           <select id="manualCatFilter" onchange="renderManualList()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;width:100%">
             <option value="">── 書類カテゴリで絞り込み ──</option>
+            <option>マニュアル</option>
             <option>感染・衛生管理</option>
             <option>緊急・事故対応</option>
             <option>介護・ケア手順</option>
@@ -1828,7 +1829,7 @@ function addUser(){
 }
 
 // MANUALS
-const DOC_CATEGORIES = ['感染・衛生管理','緊急・事故対応','介護・ケア手順','医療・服薬管理','記録・書類作成','個人情報・コンプライアンス','人事・勤怠・研修','設備・環境管理','運営・経営','その他'];
+const DOC_CATEGORIES = ['マニュアル','感染・衛生管理','緊急・事故対応','介護・ケア手順','医療・服薬管理','記録・書類作成','個人情報・コンプライアンス','人事・勤怠・研修','設備・環境管理','運営・経営','その他'];
 const JOB_GROUP_TO_ROLES = {
   '全職員共通':'all',
   '医院全体':['admin','doctor','nurse-clinic','office-clinic','kyotaku','manager'],
