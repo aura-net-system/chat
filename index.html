@@ -53,6 +53,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 .demo-btn:hover{background:var(--primary);color:#fff}
 .error-msg{color:var(--danger);font-size:13px;text-align:center;margin-top:10px}
 
+/* ===TOP NAV=== */
+.top-nav{display:flex;align-items:center;background:var(--sidebar-bg);flex-shrink:0;
+  border-bottom:2px solid rgba(255,255,255,.07);}
+.top-nav-ham{display:none;background:none;border:none;color:#fff;font-size:20px;
+  cursor:pointer;padding:10px 14px;flex-shrink:0}
+.top-nav-logo{display:flex;align-items:center;gap:9px;padding:12px 18px;
+  color:#fff;text-decoration:none;cursor:pointer;border-right:1px solid rgba(255,255,255,.1);}
+.top-nav-logo .logo-icon{font-size:20px}
+.top-nav-logo .logo-text{font-size:15px;font-weight:800}
+.top-nav-logo .sq{color:#6ec9a8}
+.nav-tabs{display:flex;flex:1;overflow-x:auto}
+.nav-tab{display:flex;align-items:center;gap:7px;padding:14px 20px;
+  color:rgba(255,255,255,.55);font-size:13px;font-weight:600;
+  cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;
+  transition:all .15s;text-decoration:none;}
+.nav-tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05)}
+.nav-tab.active{color:#fff;border-bottom-color:var(--primary);background:rgba(46,125,94,.15)}
+.nav-right{display:flex;align-items:center;gap:8px;padding:0 14px;margin-left:auto;flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:8px;padding:5px 12px;
+  background:rgba(255,255,255,.08);border-radius:20px}
+.user-pill .u-name{color:#fff;font-size:13px;font-weight:600}
+.user-pill .u-role{color:rgba(255,255,255,.5);font-size:11px}
+.nav-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.nav-logout{background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s}
+.nav-logout:hover{background:rgba(255,255,255,.15);color:#fff}
+
 /* ===APP=== */
 #app{display:none;height:100dvh;flex-direction:column}
 .app-layout{display:flex;flex:1;overflow:hidden}
@@ -305,7 +333,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
   .sidebar{position:fixed;left:-252px;top:0;bottom:0;z-index:100;transition:transform .3s}
   .sidebar.open{transform:translateX(252px)}
   .sidebar-overlay.open{display:block}
-  .mobile-header{display:flex}
+  .top-nav-ham{display:flex}
+  .user-pill{display:none}
   .bot-panel{display:none!important}
   .add-form-grid{grid-template-columns:1fr}
 }
@@ -359,9 +388,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 
 <!-- APP -->
 <div id="app">
-  <div class="mobile-header">
-    <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <span class="mobile-title" id="mobileTitle">AURA NET</span>
+  <div class="top-nav">
+    <button class="top-nav-ham" onclick="toggleSidebar()">☰</button>
+    <div class="top-nav-logo" onclick="showHome()">
+      <span class="logo-icon">🏘️</span>
+      <span class="logo-text">AURA <span class="sq">NET</span></span>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="showHome()">💬 チャット</div>
+      <a class="nav-tab" href="shift.html">📅 シフト</a>
+      <a class="nav-tab" href="ai-faq.html">✨ AI FAQ</a>
+    </div>
+    <div class="nav-right">
+      <div class="user-pill">
+        <div class="nav-avatar" id="navAvatar"></div>
+        <div>
+          <div class="u-name" id="navName">---</div>
+          <div class="u-role" id="navRole">---</div>
+        </div>
+      </div>
+      <button class="nav-logout" onclick="doLogout()">↩ 退出</button>
+    </div>
   </div>
 
   <div class="app-layout">
@@ -1000,12 +1047,21 @@ function startApp(){
   document.getElementById('sidebarAvatar').style.background=avatarColor(u.id);
   document.getElementById('avatarInitial').textContent=initials(u.name);
   document.getElementById('adminBtn').style.display=u.role==='admin'?'block':'none';
+  const navAv=document.getElementById('navAvatar');
+  if(navAv){navAv.textContent=initials(u.name);navAv.style.background=avatarColor(u.id);}
+  const navN=document.getElementById('navName'); if(navN)navN.textContent=u.name;
+  const navR=document.getElementById('navRole'); if(navR)navR.textContent=ROLE_LABELS[u.role]||'';
   const key=localStorage.getItem('gemini_api_key')||'';
   document.getElementById('geminiKeyInput').value=key;
   document.getElementById('adminGeminiKey').value=key;
   if(key)document.getElementById('botKeyBar').style.display='none';
   renderChannels(); renderDMList(); updateSurveyBadge();
   const first=CHANNELS.find(c=>canAccess(c,u.role));
+  if(first)selectChannel(first.id);
+}
+function showHome(){
+  closeSidebar();
+  const first=CHANNELS.find(c=>canAccess(c,currentUser.role));
   if(first)selectChannel(first.id);
 }
 
@@ -1146,7 +1202,7 @@ function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('o
 function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
 
 // ===== BOT =====
-function toggleBot(){ document.getElementById('botPanel').classList.toggle('hidden'); }
+function toggleBot(){ /* bot panel removed */ }
 function saveGeminiKey(){ const k=document.getElementById('geminiKeyInput').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); document.getElementById('adminGeminiKey').value=k; document.getElementById('botKeyBar').style.display='none'; showToast('Gemini APIキーを設定しました ✨'); }
 function saveGeminiKeyAdmin(){ const k=document.getElementById('adminGeminiKey').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); document.getElementById('geminiKeyInput').value=k; document.getElementById('botKeyBar').style.display='none'; showToast('Gemini APIキーを保存しました ✨'); }
 
