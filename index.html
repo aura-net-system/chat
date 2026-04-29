@@ -20,11 +20,12 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
-  background:var(--sidebar-bg);color:var(--text-primary);height:100dvh;overflow:hidden}
+  background:var(--sidebar-bg);color:var(--text-primary);height:100dvh;overflow:hidden;
+  display:flex;flex-direction:column}
 
 /* ===LOGIN=== */
-#loginScreen{display:flex;align-items:center;justify-content:center;
-  height:100dvh;background:linear-gradient(135deg,#1a2332 0%,#2e7d5e 100%);padding:20px}
+#loginScreen{flex:1;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#1a2332 0%,#2e7d5e 100%);padding:20px;overflow-y:auto}
 .login-card{background:#fff;border-radius:20px;padding:40px 36px;
   width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .login-logo{text-align:center;margin-bottom:26px}
@@ -82,7 +83,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 .nav-logout:hover{background:rgba(255,255,255,.15);color:#fff}
 
 /* ===APP=== */
-#app{display:none;height:100dvh;flex-direction:column}
+#app{display:none;flex:1;flex-direction:column;overflow:hidden}
 .app-layout{display:flex;flex:1;overflow:hidden}
 
 /* ===SIDEBAR=== */
@@ -333,10 +334,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
   .sidebar{position:fixed;left:-252px;top:0;bottom:0;z-index:100;transition:transform .3s}
   .sidebar.open{transform:translateX(252px)}
   .sidebar-overlay.open{display:block}
-  .top-nav-ham{display:flex}
-  .user-pill{display:none}
   .bot-panel{display:none!important}
   .add-form-grid{grid-template-columns:1fr}
+  .user-pill .u-role{display:none}
 }
 @media(max-width:1050px){.bot-panel{width:270px}}
 ::-webkit-scrollbar{width:4px}
@@ -344,6 +344,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 </style>
 </head>
 <body>
+
+<!-- PERSISTENT TOP NAV -->
+<div class="top-nav">
+  <button class="top-nav-ham" id="topNavHam" onclick="toggleSidebar()" style="display:none">☰</button>
+  <div class="top-nav-logo" onclick="showHome()">
+    <span class="logo-icon">🏘️</span>
+    <span class="logo-text">AURA <span class="sq">NET</span></span>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showHome()">💬 チャット</div>
+    <a class="nav-tab" href="shift.html">📅 シフト</a>
+    <a class="nav-tab" href="ai-faq.html">✨ AI FAQ</a>
+  </div>
+  <div class="nav-right">
+    <div class="user-pill" id="userPill" style="display:none">
+      <div class="nav-avatar" id="navAvatar"></div>
+      <div>
+        <div class="u-name" id="navName">---</div>
+        <div class="u-role" id="navRole">---</div>
+      </div>
+    </div>
+    <button class="nav-logout" id="navLogout" style="display:none" onclick="doLogout()">↩ 退出</button>
+  </div>
+</div>
 
 <!-- LOGIN -->
 <div id="loginScreen">
@@ -388,29 +412,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 
 <!-- APP -->
 <div id="app">
-  <div class="top-nav">
-    <button class="top-nav-ham" onclick="toggleSidebar()">☰</button>
-    <div class="top-nav-logo" onclick="showHome()">
-      <span class="logo-icon">🏘️</span>
-      <span class="logo-text">AURA <span class="sq">NET</span></span>
-    </div>
-    <div class="nav-tabs">
-      <div class="nav-tab active" onclick="showHome()">💬 チャット</div>
-      <a class="nav-tab" href="shift.html">📅 シフト</a>
-      <a class="nav-tab" href="ai-faq.html">✨ AI FAQ</a>
-    </div>
-    <div class="nav-right">
-      <div class="user-pill">
-        <div class="nav-avatar" id="navAvatar"></div>
-        <div>
-          <div class="u-name" id="navName">---</div>
-          <div class="u-role" id="navRole">---</div>
-        </div>
-      </div>
-      <button class="nav-logout" onclick="doLogout()">↩ 退出</button>
-    </div>
-  </div>
-
   <div class="app-layout">
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
@@ -1034,7 +1035,15 @@ function doLogin(){
   localStorage.setItem('vs_session', JSON.stringify(user.id));
   startApp();
 }
-function doLogout(){ currentUser=null; currentChannel=null; localStorage.removeItem('vs_session'); document.getElementById('app').style.display='none'; document.getElementById('loginScreen').style.display='flex'; showToast('ログアウトしました'); }
+function doLogout(){
+  currentUser=null; currentChannel=null; localStorage.removeItem('vs_session');
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('userPill').style.display='none';
+  document.getElementById('navLogout').style.display='none';
+  document.getElementById('topNavHam').style.display='none';
+  showToast('ログアウトしました');
+}
 
 // ===== APP =====
 function startApp(){
@@ -1048,9 +1057,13 @@ function startApp(){
   document.getElementById('avatarInitial').textContent=initials(u.name);
   document.getElementById('adminBtn').style.display=u.role==='admin'?'block':'none';
   const navAv=document.getElementById('navAvatar');
-  if(navAv){navAv.textContent=initials(u.name);navAv.style.background=avatarColor(u.id);}
-  const navN=document.getElementById('navName'); if(navN)navN.textContent=u.name;
-  const navR=document.getElementById('navRole'); if(navR)navR.textContent=ROLE_LABELS[u.role]||'';
+  navAv.textContent=initials(u.name); navAv.style.background=avatarColor(u.id);
+  document.getElementById('navName').textContent=u.name;
+  document.getElementById('navRole').textContent=ROLE_LABELS[u.role]||'';
+  document.getElementById('userPill').style.display='flex';
+  document.getElementById('navLogout').style.display='';
+  // show hamburger on mobile after login
+  if(window.innerWidth<=768) document.getElementById('topNavHam').style.display='flex';
   const key=localStorage.getItem('gemini_api_key')||'';
   document.getElementById('geminiKeyInput').value=key;
   document.getElementById('adminGeminiKey').value=key;
@@ -1060,6 +1073,7 @@ function startApp(){
   if(first)selectChannel(first.id);
 }
 function showHome(){
+  if(!currentUser) return;
   closeSidebar();
   const first=CHANNELS.find(c=>canAccess(c,currentUser.role));
   if(first)selectChannel(first.id);
