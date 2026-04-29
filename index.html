@@ -662,18 +662,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 
       <!-- MANUALS -->
       <div class="tab-content" id="tab-manuals">
-        <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
+        <div style="margin-bottom:10px;display:flex;gap:10px;align-items:center">
           <span style="font-size:14px;font-weight:700">登録マニュアル</span>
           <button class="btn btn-primary btn-sm" onclick="toggleAddManual()">＋ 追加</button>
+        </div>
+        <div style="margin-bottom:12px">
+          <select id="manualCatFilter" onchange="renderManualList()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;width:100%">
+            <option value="">── カテゴリで絞り込み ──</option>
+            <option>全職員共通</option>
+            <option>医師</option>
+            <option>医院看護師</option>
+            <option>施設看護師</option>
+            <option>医院事務</option>
+            <option>介護職員（サ高住）</option>
+            <option>介護職員（小多機）</option>
+            <option>訪問介護職員</option>
+            <option>デイサービス職員</option>
+            <option>居宅介護支援員</option>
+            <option>管理職・理事会</option>
+          </select>
         </div>
         <!-- Add Form -->
         <div id="addManualForm" style="display:none;padding:16px;background:var(--chat-bg);border-radius:12px;margin-bottom:14px">
           <div class="form-group"><label>マニュアル名 *</label><input type="text" id="manualName" placeholder="感染対策マニュアル"></div>
           <div class="form-group">
-            <label>カテゴリ</label>
-            <select id="manualCategory">
-              <option>全職員共通</option><option>医療部門</option><option>介護部門</option><option>緊急対応</option><option>人事・総務</option>
-            </select>
+            <label>カテゴリ（複数選択可）</label>
+            <div class="role-checks" id="manualCategoryChecks" style="gap:6px;flex-wrap:wrap"></div>
           </div>
           <div class="form-group">
             <label>📂 ファイルアップロード（PDF / Word）または手動入力</label>
@@ -968,11 +982,11 @@ const SAMPLE_MSGS = {
 };
 
 const DEFAULT_MANUALS = [
-  {id:1, name:'感染対策マニュアル', category:'全職員共通', date:'2025-04-01', icon:'🦠', roles:['all'], content:'手洗いは流水で15秒以上。アルコール消毒は手全体に広げ乾燥まで。マスクは正しく装着。感染が疑われる場合は速やかに上長へ報告。隔離対応は感染対策委員会の指示に従う。'},
-  {id:2, name:'緊急時対応マニュアル', category:'全職員共通', date:'2025-03-15', icon:'🚨', roles:['all'], content:'①安全確認 ②119番通報（必要時）③上長・施設長報告 ④AED使用（心肺停止時）⑤利用者家族への連絡 ⑥ヒヤリハット報告書作成。AEDは各フロアのナースステーション横に設置。'},
-  {id:3, name:'介護記録作成ガイド', category:'介護部門', date:'2025-02-28', icon:'📝', roles:['admin','nurse-facility','care-sako','care-kotaki','care-houmon','care-day','kyotaku'], content:'5W1Hで客観的に記録。主観は「〜と思われる」と明記。バイタルは数値で正確に。利用者の言葉は「」でそのまま記録。当日中に完成。修正は二重線で日時・署名を添える。'},
-  {id:4, name:'ヒヤリハット報告手順', category:'全職員共通', date:'2025-01-20', icon:'⚠️', roles:['all'], content:'発生後24時間以内に所定フォームへ記入。上長への口頭報告も同時に実施。責任追及でなく再発防止が目的。積極的な報告を奨励します。'},
-  {id:5, name:'就業規則・人事規定', category:'人事・総務', date:'2025-04-01', icon:'📖', roles:['all'], content:'勤務：日勤8:30〜17:30、夜勤16:30〜翌9:00。有給は入職6ヶ月後から付与、申請は2週間前までに上長へ。育児・介護休暇あり。私的スマホ使用は休憩時間のみ。'},
+  {id:1, name:'感染対策マニュアル', category:['全職員共通'], date:'2025-04-01', icon:'🦠', roles:['all'], content:'手洗いは流水で15秒以上。アルコール消毒は手全体に広げ乾燥まで。マスクは正しく装着。感染が疑われる場合は速やかに上長へ報告。隔離対応は感染対策委員会の指示に従う。'},
+  {id:2, name:'緊急時対応マニュアル', category:['全職員共通'], date:'2025-03-15', icon:'🚨', roles:['all'], content:'①安全確認 ②119番通報（必要時）③上長・施設長報告 ④AED使用（心肺停止時）⑤利用者家族への連絡 ⑥ヒヤリハット報告書作成。AEDは各フロアのナースステーション横に設置。'},
+  {id:3, name:'介護記録作成ガイド', category:['介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員'], date:'2025-02-28', icon:'📝', roles:['admin','nurse-facility','care-sako','care-kotaki','care-houmon','care-day','kyotaku'], content:'5W1Hで客観的に記録。主観は「〜と思われる」と明記。バイタルは数値で正確に。利用者の言葉は「」でそのまま記録。当日中に完成。修正は二重線で日時・署名を添える。'},
+  {id:4, name:'ヒヤリハット報告手順', category:['全職員共通'], date:'2025-01-20', icon:'⚠️', roles:['all'], content:'発生後24時間以内に所定フォームへ記入。上長への口頭報告も同時に実施。責任追及でなく再発防止が目的。積極的な報告を奨励します。'},
+  {id:5, name:'就業規則・人事規定', category:['全職員共通'], date:'2025-04-01', icon:'📖', roles:['all'], content:'勤務：日勤8:30〜17:30、夜勤16:30〜翌9:00。有給は入職6ヶ月後から付与、申請は2週間前までに上長へ。育児・介護休暇あり。私的スマホ使用は休憩時間のみ。'},
 ];
 
 const DEFAULT_SURVEYS = [
@@ -994,7 +1008,7 @@ const GROQ_API_KEY = ['gsk_Or0ik9JY','q4M5EUJThZ','m2WGdyb3FY','XarbfX7ker','oaF
 
 // ===== STATE =====
 // バージョンが変わったらlocalStorageをリセット（ドメイン変更等に対応）
-const DATA_VERSION = 'v5';
+const DATA_VERSION = 'v6';
 if(localStorage.getItem('vs_version') !== DATA_VERSION){
   ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
   localStorage.setItem('vs_version', DATA_VERSION);
@@ -1700,16 +1714,38 @@ function addUser(){
 }
 
 // MANUALS
-function toggleAddManual(){ const f=document.getElementById('addManualForm'); f.style.display=f.style.display==='none'?'block':'none'; }
+const MANUAL_CATEGORIES = ['全職員共通','医師','医院看護師','施設看護師','医院事務','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員','管理職・理事会'];
+function toggleAddManual(){
+  const f=document.getElementById('addManualForm');
+  const open=f.style.display==='none'||!f.style.display;
+  f.style.display=open?'block':'none';
+  if(open){
+    const box=document.getElementById('manualCategoryChecks'); box.innerHTML='';
+    MANUAL_CATEGORIES.forEach(cat=>{
+      const id='mcat-'+cat;
+      box.insertAdjacentHTML('beforeend',
+        `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fff;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
+          <input type="checkbox" id="${id}" value="${cat}" style="accent-color:var(--primary)">${cat}</label>`);
+    });
+  }
+}
 function renderManualList(){
+  const filter=document.getElementById('manualCatFilter')?.value||'';
   const list=document.getElementById('manualList');
-  list.innerHTML=manuals.map(m=>{
+  const filtered=filter?manuals.filter(m=>{
+    const cats=Array.isArray(m.category)?m.category:[m.category];
+    return cats.includes(filter);
+  }):manuals;
+  list.innerHTML=filtered.map(m=>{
+    const cats=Array.isArray(m.category)?m.category:[m.category];
+    const catTags=cats.map(c=>`<span style="display:inline-block;padding:2px 8px;background:var(--primary-light);color:var(--primary);border-radius:20px;font-size:11px;font-weight:700;margin-right:3px">${c}</span>`).join('');
     const roleDisplay=m.roles.includes('all')?'<span class="role-chip">全員</span>':m.roles.map(r=>`<span class="role-chip">${ROLE_LABELS[r]||r}</span>`).join('');
     return `<div class="manual-item">
       <div class="m-icon">${m.icon||'📄'}</div>
       <div class="m-info">
         <div class="m-name">${escHtml(m.name)}</div>
-        <div class="m-meta">${m.category} ・ ${m.date}</div>
+        <div style="margin:3px 0">${catTags}</div>
+        <div class="m-meta">${m.date}</div>
         <div class="m-roles">${roleDisplay}</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="deleteManual(${m.id})">削除</button>
@@ -1718,13 +1754,13 @@ function renderManualList(){
 }
 function saveManual(){
   const name=document.getElementById('manualName').value.trim();
-  const category=document.getElementById('manualCategory').value;
+  const cats=[...document.querySelectorAll('#manualCategoryChecks input:checked')].map(el=>el.value);
   const content=document.getElementById('manualContent').value.trim();
   const roles=getCheckedRoles('manualRoleChecks');
   if(!name)return showToast('マニュアル名を入力してください');
   if(!content)return showToast('内容を入力してください');
   if(roles.length===0)return showToast('参照権限を選択してください');
-  manuals.push({id:Date.now(),name,category,date:new Date().toISOString().slice(0,10),icon:'📄',roles,content});
+  manuals.push({id:Date.now(),name,category:cats,date:new Date().toISOString().slice(0,10),icon:'📄',roles,content});
   saveData();renderManualList();
   document.getElementById('addManualForm').style.display='none';
   ['manualName','manualContent'].forEach(id=>document.getElementById(id).value='');
