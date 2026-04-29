@@ -294,6 +294,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 <script>
 if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+const GEMINI_API_KEY = 'AIzaSyCY-Vh1BHPrPOdEs0X-Sc5AtgBkamY8YOc';
+
 const ROLE_LABELS={
   admin:'システム管理者',doctor:'医師',manager:'管理者',
   'office-clinic':'医院事務','nurse-clinic':'医院看護師','nurse-facility':'施設看護師',
@@ -373,12 +375,8 @@ function startApp(){
   const av=document.getElementById('navAvatar');
   av.style.background=avatarColor(u.id);
   av.textContent=initials(u.name);
-  // Gemini key check
-  const key=localStorage.getItem('gemini_api_key');
-  if(key){
-    document.getElementById('keyBar').classList.add('hidden');
-    setAiStatus(true);
-  }
+  document.getElementById('keyBar').classList.add('hidden');
+  setAiStatus(true);
 }
 
 function saveKey(){
@@ -408,7 +406,7 @@ function buildContext(){
 
 // ===== GEMINI API =====
 async function callGemini(q){
-  const key=localStorage.getItem('gemini_api_key');
+  const key=GEMINI_API_KEY;
   if(!key)return null;
   const ctx=buildContext();
   const prompt=`あなたは医療法人「AURA NET」の業務アシスタントAIです。
@@ -467,7 +465,7 @@ function addAiMsg(text){
   if(typing)typing.remove();
   const msgs=document.getElementById('messages');
   const row=document.createElement('div');row.className='msg-row ai-row';
-  const key=localStorage.getItem('gemini_api_key');
+  const key=GEMINI_API_KEY;
   row.innerHTML=`
     <div class="msg-avatar" style="background:var(--primary);font-size:16px">✨</div>
     <div class="msg-bubble">
@@ -484,22 +482,10 @@ async function ask(q){
   document.getElementById('sendBtn').disabled=true;
   addUserMsg(q);
   addTyping();
-  const key=localStorage.getItem('gemini_api_key');
-  let answer;
-  if(key){
-    answer=await callGemini(q);
-  }else{
-    await new Promise(r=>setTimeout(r,600));
-    answer=null;
+  let answer = await callGemini(q);
+  if(!answer){
     for(const[kw,ans]of Object.entries(FALLBACK)){if(q.includes(kw)){answer=ans;break;}}
-    const manuals=getManuals();
-    if(!answer&&manuals.length){
-      for(const m of manuals){
-        const accessible=m.roles.includes('all')||m.roles.includes(currentUser.role)||currentUser.role==='admin';
-        if(accessible&&q.includes(m.name.slice(0,4))){answer=`📄「${m.name}」より：\n${m.content}`;break;}
-      }
-    }
-    if(!answer)answer=`「${q}」についての詳細な回答はGemini APIキーを設定することで取得できます。\nAPIキーは上のバーから入力してください。`;
+    if(!answer)answer='申し訳ありません、回答を取得できませんでした。しばらく経ってからお試しください。';
   }
   addAiMsg(answer||'回答を取得できませんでした。');
   isBusy=false;
