@@ -296,7 +296,7 @@ const DEPTS=[
 ];
 
 // ===== STATE =====
-const DATA_VERSION='v4';
+const DATA_VERSION='v5';
 if(localStorage.getItem('vs_version')!==DATA_VERSION){
   ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
   localStorage.setItem('vs_version',DATA_VERSION);
