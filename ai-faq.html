@@ -304,7 +304,7 @@ const ROLE_LABELS={
   kyotaku:'居宅介護支援職員',board:'理事会',
 };
 
-const DATA_VERSION='v6';
+const DATA_VERSION='v7';
 if(localStorage.getItem('vs_version')!==DATA_VERSION){
   ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
   localStorage.setItem('vs_version',DATA_VERSION);
