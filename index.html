@@ -1186,7 +1186,7 @@ function renderMessages(){
 }
 
 // ===== SEND =====
-function handleInputKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+function handleInputKey(e){ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMessage();} }
 function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 function sendMessage(){
   if(!currentChannel){showToast('チャンネルを選択してください');return;}
