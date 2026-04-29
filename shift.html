@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>AURA NET - シフト閲覧</title>
+<style>
+:root{
+  --primary:#2e7d5e;--primary-dark:#1b5e42;--primary-light:#e8f5f0;
+  --sidebar-bg:#1a2332;--sidebar-hover:#263348;--sidebar-active:#2e7d5e;
+  --chat-bg:#f4f6f9;--border:#e4e9f0;
+  --text-primary:#1a1f2e;--text-muted:#8892a4;
+  --danger:#e53935;--success:#43a047;--warning:#fb8c00;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+  background:var(--chat-bg);color:var(--text-primary);height:100dvh;overflow:hidden}
+
+/* ===LOGIN=== */
+#loginScreen{display:flex;align-items:center;justify-content:center;
+  height:100dvh;background:linear-gradient(135deg,#1a2332 0%,#2e7d5e 100%);padding:20px}
+.login-card{background:#fff;border-radius:20px;padding:36px;width:100%;max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-logo .icon{font-size:44px}
+.login-logo h1{font-size:24px;font-weight:800;color:var(--primary);margin-top:6px}
+.login-logo p{color:#888;font-size:11px;margin-top:3px;letter-spacing:1px}
+.form-group{margin-bottom:15px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px}
+.form-group input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none}
+.form-group input:focus{border-color:var(--primary)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:10px 18px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff;width:100%}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1.5px solid var(--border)}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:8px}
+.error-msg{color:var(--danger);font-size:13px;text-align:center;margin-top:8px}
+
+/* ===APP=== */
+#app{display:none;height:100dvh;flex-direction:column}
+
+/* ===TOP NAV=== */
+.top-nav{
+  display:flex;align-items:center;gap:0;
+  background:var(--sidebar-bg);flex-shrink:0;
+  border-bottom:2px solid rgba(255,255,255,.07);
+}
+.top-nav-logo{
+  display:flex;align-items:center;gap:9px;padding:12px 18px;
+  color:#fff;text-decoration:none;border-right:1px solid rgba(255,255,255,.1);
+}
+.top-nav-logo .logo-icon{font-size:20px}
+.top-nav-logo span{font-size:15px;font-weight:800}
+.top-nav-logo .sq{color:#6ec9a8}
+.nav-tabs{display:flex;flex:1;overflow-x:auto}
+.nav-tab{
+  display:flex;align-items:center;gap:7px;padding:14px 20px;
+  color:rgba(255,255,255,.55);font-size:13px;font-weight:600;
+  cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;
+  transition:all .15s;text-decoration:none;
+}
+.nav-tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05)}
+.nav-tab.active{color:#fff;border-bottom-color:var(--primary);background:rgba(46,125,94,.15)}
+.nav-right{display:flex;align-items:center;gap:8px;padding:0 16px;margin-left:auto;flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:8px;padding:5px 12px;
+  background:rgba(255,255,255,.08);border-radius:20px}
+.user-pill .u-name{color:#fff;font-size:13px;font-weight:600}
+.user-pill .u-role{color:rgba(255,255,255,.5);font-size:11px}
+.avatar-sm{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.logout-btn{background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s}
+.logout-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+
+/* ===MAIN=== */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ===SIDEBAR=== */
+.shift-sidebar{
+  width:200px;background:#fff;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;
+}
+.shift-sidebar-section{padding:12px 14px 6px}
+.shift-sidebar-title{font-size:10px;font-weight:800;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.dept-item{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;
+  border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:3px;
+}
+.dept-item:hover{background:var(--primary-light)}
+.dept-item.active{background:var(--primary);color:#fff}
+.dept-item.active .dept-icon,.dept-item.active .dept-name{color:#fff}
+.dept-icon{font-size:18px}
+.dept-name{font-size:13px;font-weight:600;color:var(--text-primary);flex:1}
+
+/* ===CONTENT=== */
+.shift-content{flex:1;overflow-y:auto;padding:0}
+
+/* MONTH TABS */
+.month-tabs{
+  display:flex;gap:6px;padding:14px 18px 0;flex-wrap:wrap;background:#fff;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.month-tab{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;
+  cursor:pointer;border:1.5px solid var(--border);color:var(--text-muted);
+  transition:all .15s;
+}
+.month-tab:hover{border-color:var(--primary);color:var(--primary)}
+.month-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.month-tabs-row{background:#fff;border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+/* TABLE WRAPPER */
+.table-wrap{overflow:auto;padding:0}
+.shift-title{padding:14px 18px 10px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.shift-title h2{font-size:16px;font-weight:700}
+.shift-title .shift-meta{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* ===SHIFT TABLE=== */
+.shift-table{
+  border-collapse:collapse;font-size:12px;white-space:nowrap;
+  min-width:100%;
+}
+.shift-table th,.shift-table td{
+  border:1px solid #dee2e6;padding:4px 6px;text-align:center;
+  vertical-align:middle;min-width:32px;
+}
+.shift-table thead th{
+  position:sticky;top:0;z-index:10;background:#f8f9fa;
+  font-weight:700;font-size:11px;
+}
+.shift-table thead th.th-role{min-width:120px;text-align:left;position:sticky;left:0;z-index:20;background:#f8f9fa}
+.shift-table thead th.th-name{min-width:90px;text-align:left;position:sticky;left:120px;z-index:20;background:#f8f9fa}
+.shift-table thead tr.tr-weekday th{font-size:10px;font-weight:600}
+
+.shift-table td.td-role{
+  position:sticky;left:0;background:#fff;z-index:5;
+  font-size:11px;font-weight:600;text-align:left;color:#555;min-width:120px;
+  border-right:2px solid #dee2e6;
+}
+.shift-table td.td-name{
+  position:sticky;left:120px;background:#fff;z-index:5;
+  font-weight:600;text-align:left;min-width:90px;
+  border-right:2px solid #dee2e6;
+}
+.shift-table tbody tr:hover td{filter:brightness(.97)}
+.shift-table tbody tr:hover td.td-role,.shift-table tbody tr:hover td.td-name{filter:brightness(.96)}
+
+/* day header colors */
+.th-sun{color:#e53935!important;background:#fff5f5!important}
+.th-sat{color:#1565c0!important;background:#f0f4ff!important}
+.th-sun-col{background:#fff5f5!important}
+.th-sat-col{background:#f0f4ff!important}
+
+/* shift cell colors */
+.s-off{background:#f0f0f0;color:#888;font-size:11px}          /* ／ 休 */
+.s-night{background:#1a2332;color:#80c8ff;font-weight:700}    /* 夜 */
+.s-morning{background:#e3f2fd;color:#1565c0;font-weight:600}  /* 明 */
+.s-early{background:#fff8e1;color:#e65100;font-weight:600}    /* 早 */
+.s-late{background:#f3e5f5;color:#6a1b9a;font-weight:600}     /* 遅 */
+.s-day{background:#fff;color:#333}                             /* 日 */
+.s-leave{background:#e8f5e9;color:#2e7d32;font-weight:700}    /* 有 */
+.s-kitchen{background:#fff3e0;color:#bf360c;font-weight:600}  /* 厨 */
+.s-other{background:#e8f5f0;color:#2e7d5e;font-weight:600}    /* その他コード */
+.s-empty{background:#fafafa;color:#ccc}
+
+/* shift type legend */
+.legend{display:flex;flex-wrap:wrap;gap:6px;padding:10px 18px 12px;background:#fff;border-bottom:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:11px}
+.legend-swatch{width:22px;height:16px;border-radius:3px;border:1px solid rgba(0,0,0,.1)}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state .e-icon{font-size:52px;margin-bottom:14px}
+.empty-state p{font-size:15px;font-weight:600;color:#777}
+.empty-state small{font-size:13px;margin-top:6px;display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1a2332;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;
+  opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:700px){
+  .shift-sidebar{width:100%;height:auto;max-height:130px;flex-direction:row;
+    flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--border);overflow-x:auto}
+  .shift-sidebar-section{flex:none;padding:6px 8px}
+  .dept-item{flex-direction:column;padding:6px 8px;min-width:64px;align-items:center;text-align:center}
+  .main{flex-direction:column}
+  .shift-table th,.shift-table td{padding:3px 4px;font-size:11px}
+  .shift-table td.td-role{min-width:80px}
+  .shift-table td.td-name{left:80px;min-width:64px}
+  .shift-table thead th.th-role{min-width:80px}
+  .shift-table thead th.th-name{left:80px;min-width:64px}
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#c5cdd6;border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">📅</div>
+      <h1>AURA <span style="color:#6ec9a8">NET</span></h1>
+      <p>SHIFT VIEWER</p>
+    </div>
+    <div class="form-group">
+      <label>メールアドレス</label>
+      <input type="email" id="loginEmail" placeholder="example@aura-net.jp">
+    </div>
+    <div class="form-group">
+      <label>パスワード</label>
+      <input type="password" id="loginPassword" placeholder="パスワードを入力">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">ログイン</button>
+    <div id="loginError" class="error-msg"></div>
+    <p style="font-size:12px;color:#aaa;text-align:center;margin-top:14px">AURA NETと同じアカウントでログインしてください</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOP NAV -->
+  <div class="top-nav">
+    <a class="top-nav-logo" href="001_チャットシステムデモ.html">
+      <span class="logo-icon">🏘️</span>
+      <span>AURA <span class="sq">NET</span></span>
+    </a>
+    <div class="nav-tabs">
+      <a class="nav-tab" href="001_チャットシステムデモ.html">💬 チャット</a>
+      <div class="nav-tab active">📅 シフト</div>
+    </div>
+    <div class="nav-right">
+      <div class="user-pill">
+        <div class="avatar-sm" id="navAvatar"></div>
+        <div>
+          <div class="u-name" id="navName">---</div>
+          <div class="u-role" id="navRole">---</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">↩️ 退出</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- SIDEBAR -->
+    <div class="shift-sidebar">
+      <div class="shift-sidebar-section">
+        <div class="shift-sidebar-title">事業所</div>
+        <div id="deptList"></div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="shift-content" id="shiftContent">
+      <div class="empty-state" style="margin-top:60px">
+        <div class="e-icon">📅</div>
+        <p>事業所を選択してください</p>
+        <small>左のメニューから事業所を選択するとシフトが表示されます</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== EMBEDDED SHIFT DATA =====
+const SHIFT_DATA = {"sako":[{"label":"サ高住","year":2026,"mo":2,"days":28,"weekday_start":0,"staff":[{"role":"サ高管理者（サ訪）","name":"岡本　健志","days":["／","日","日","／","日","日","夜","明","／","日","日","／","日","／","日","日","日","／","日","日","夜","明","／","日","日","日","有","／"]},{"role":"相談員（常）","name":"山田　宏美","days":["日","日","／","日","／","日","日","日","日","／","日","日","／","日","／","／","日","日","日","／","日","日","日","／","日","有","日","日"]},{"role":"介護（常・サ訪）","name":"森本　優子","days":["明","／","／","早②","遅①","夜","明","／","早②","早①","夜","明","／","遅①","夜","明","／","早②","遅①","／","／","早①","早②","遅①","／","早②","夜","明"]},{"role":"介護（常・サ訪）","name":"相原　万里子","days":["夜","明","／","夜","明","／","／","早②","遅①","夜","明","／","早②","早①","／","有","早①","夜","明","／","早②","日","遅①","／","早①","遅①","／","遅①"]},{"role":"介護（常・サ訪）","name":"玉木　陽子","days":["早①","早①","遅①","／","早①","早②","遅①","／","早①","遅①","／","／","夜","明","／","遅①","夜","明","／","早②","早①","夜","明","／","夜","明","／","早①"]},{"role":"介護（常・サ訪）","name":"田野　攻治","days":["／","／","早②","早①","夜","明","／","遅①","夜","明","／","早②","早①","夜","明","／","早②","遅①","／","遅①","／","遅①","夜","明","／","早①","早②","日"]},{"role":"介護（常・サ訪）","name":"中桐　裕次郎","days":["早②","遅①","夜","明","／","／","早①","夜","明","／","早②","遅①","遅①","／","遅①","夜","明","／","早①","夜","明","／","／","早②","早②","夜","明","／"]},{"role":"介護（常・サ訪）","name":"西　恵","days":["遅①","夜","明","／","早②","遅①","／","早①","／","／","遅①","夜","明","／","早②","早①","／","早①","夜","明","／","早②","早①","夜","明","／","遅①","夜"]},{"role":"介護（常・サ訪）","name":"山本　正子","days":["／","早②","早①","遅①","／","早①","早②","／","／","早②","早①","早①","／","早②","早①","早②","遅①","／","早②","早①","遅①","／","／","早①","遅①","有","早①","早②"]},{"role":"訪問管理者（常）","name":"長谷川　美樹","days":["／","日","日","日","日","日／","日","／","日","日","日","日","／","日","／","日","日／","日","日","日","／","／","日","日","／","日","日","日"]},{"role":"訪問（常）","name":"芝崎　千春","days":["／","日","日","日","日","日","／","／","日","日","日","日","日","／","／","日","日","／有","日","日","／","／","日","日","日","日","日","／"]},{"role":"看護（常）","name":"稲田　真帆","days":["","","","","","","","","","","","","","","","","","","","","","","","","","","",""]},{"role":"看護（常）","name":"兼信　真理","days":["","","","","","","","","","","","","","","","","","","","","","","","","","","",""]},{"role":"看護（常）","name":"中桐　芳江","days":["","","","","","","","","","","","","","","","","","","","","","","","","","","",""]},{"role":"看護（常）","name":"岡本　真由美","days":["","","","","","","","","","","","","","","","","","","","","","","","","","","",""]},{"role":"看護（パ）","name":"岡　友子","days":["","","","","","","","","","","","","","","","","","","","","","","","","","","",""]},{"role":"看護（パ）","name":"山室　八千代","days":["","","","","","","","","","","","","","","","","","","","","","","","","","","",""]}]}],"houmon":[{"label":"訪問介護","year":2026,"mo":2,"days":28,"weekday_start":0,"staff":[{"role":"訪問管理者","name":"長谷川美樹","days":["休","日","日","日","日","日/休","日","休","日","日","日","日","休","日","休","日","日/休","日","日","日","休","休","日","日","休","日","日","日"]},{"role":"訪問介護員","name":"芝崎千春","days":["休","日","日","日","日","日","休","休","日","日","日","日","日","休","休","日","日","日/有","日","日","休","休","日","日","日","日","日","休"]}]}],"kotaki":[{"label":"小規模多機能","year":2026,"mo":2,"days":28,"weekday_start":0,"staff":[{"role":"管理者　CM","name":"福田　朋美","days":["休","","","休","","","","休","","","","休","","","休","","","休","","","休","","","","休"]},{"role":"管理者補佐","name":"小川　萌","days":["夜","明","休","早","休","日","夜","明","休","日","早","夜","明","休","日","日","早","休","休","早","休","休","日","日","早","日","夜","明"]},{"role":"介福","name":"高橋由理子","days":["休","日","早","休","日","夜","明","休","早","日","日","休","日","日","早","日","休","日","日","夜","明","休","休","早","日／有","日","休","日"]},{"role":"介福","name":"横山　稔代","days":["明","休","夜","明","休","日","早","日","夜","明","休","休","日","夜","明","休","日","夜","明","休","早","日","夜","明","休","夜","明","休"]},{"role":"介福","name":"柏原　美保","days":["日","夜","明","休","日","休","日","夜","明","休","日","早","夜","明","休","日","夜","明","休","日","日","夜","明","休","夜","明","休","早"]},{"role":"介福","name":"吉田　かおり","days":["休","厨","厨","夜","明","休","厨","厨","休","厨","厨","休","厨","休","厨","休","厨","厨","休","厨","夜","明","有","厨","厨","厨","休","夜"]},{"role":"基礎研","name":"佐々木　春菜","days":["夜","明","休","日","日","早","休","休","日","日","夜","明","休","早","日","夜","明","休","早","日","休","日","早","夜","明","休","休","日"]},{"role":"介福","name":"藤川　五月","days":["早","休","日","日","夜","明","休","早","日","夜","明","休","休","日","夜","明","休","日","夜","明","休","早","日","日","休","日","早","休"]},{"role":"介福","name":"戸髙　優子","days":["日","日","日","早","休","日","日","早","休","早","休","日","日","夜","明","休","休","日","日","休","日","夜","明","休","早","休","日","日"]},{"role":"介福","name":"加藤　良子","days":["日","日","休","日","早","休","日","日","日","休","日","日","休","日","日","休","日","早","休","日","日","日","有","休","日","早","日","休"]},{"role":"介福","name":"松井　綾香","days":["休","日","日","日","日","日","休","休","日","日","日","日","日","休","休","日","日","日","日","日","休","休","日","日","日","日","日","休"]},{"role":"実務","name":"漆川 富美子","days":["日","早","休","休","日","日","日","日","休","早","日","日","早","休","日","早","日","休","日","日","日","休","休","日","日","休","日","日"]},{"role":"看護師","name":"山室　八千代","days":["日","休","日","日","日","休","休","休","日","日","休","日","休","日","休","日","日","休","日","休","日","日","休","日","日","日","休","休"]},{"role":"看護師","name":"兼信　真里","days":["","","日","","","日","","","","日","","","","","","","","","","日","","","日"]},{"role":"看護師","name":"中桐　芳江","days":["","","","","","","","日","","","","","日","","日","","","","","","","","","","","","日","日"]},{"role":"看護師","name":"岡本　真由美","days":["","日","","","","","日","","","","","","","","","","","日"]},{"role":"CM","name":"稲田　智子","days":["","","Ｆ","","","","Ｆ","","","Ｆ","","","","Ｆ","","","Ｆ","","","","Ｆ","","","Ｆ","","","","Ｆ"]},{"role":"看護師CM","name":"今井　光江","days":["","K","N","K","","","","","K","N","K","","","","","K","N","K","","","","","K","N","K","","N"]}]},{"label":"小規模多機能","year":2026,"mo":1,"days":31,"weekday_start":4,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["明","休","有","有","休","有","有","有","休","有","有","有","休","有","有","有","休","有","有","有","休","有","有","有","休","有","有","休","有","有","休"]},{"role":"管理者　CM","name":"福田　朋美","days":["休","日","日","休","日","日","日","休","日","日","日","休","日","日","休","日","日","休","日","日","日","休","日","日","日","休","日","日","休","日","日"]},{"role":"介福","name":"高橋由理子","days":["休","夜","明","休","早","早","早","休","夜","明","休","早","休","早","早","夜","明","休","早","早","早","休","夜","明","休","早","早","日","日","夜","明"]},{"role":"介福","name":"横山　稔代","days":["早","日","休","早","夜","明","休","夜","明","休","有","夜","明","休","夜","明","休","休","夜","明","休","夜","明","休","夜","明","休","早","早","日","夜"]},{"role":"介福","name":"柏原　美保","days":["日","早","夜","明","休","夜","明","休","日","早","夜","明","休","夜","明","休","早","夜","明","休","夜","明","休","夜","明","休","夜","明","休","休","早"]},{"role":"介福","name":"加藤　良子","days":["休","有","早","日","休","日","日","早","日","日","休","有","日","休","日","休","日","早","日","休","日","日","休","早","日","日","休","日","日","日","休"]},{"role":"介福","name":"松井　綾香","days":["日","有","休","休","日","日","日","日","早","休","休","日","日","日","日","日","休","休","日","日","日","日","早","休","休","日","日","日","日","日","休"]},{"role":"介福","name":"吉田　かおり","days":["厨","厨","厨","休","休","厨","厨","日","厨","夜","明","有","休","厨","厨","休","休","厨","厨","厨","休","休","厨","厨","日","休","厨","厨","夜","明","休"]},{"role":"基礎研","name":"佐々木　春菜","days":["夜","明","休","夜","明","休","夜","明","休","日","日","休","夜","明","休","日","夜","明","休","夜","明","休","日","日","休","夜","明","夜","明","休","日"]},{"role":"実務","name":"漆川 富美子","days":["休","休","日","日","日","日","休","日","日","休","日","日","日","休","日","休","日","日","日","日","休","日","日","有","休","日","日","日","休","日","日"]},{"role":"介福","name":"藤川　五月","days":["早","休","日","日","日","休","日","日","日","夜","明","休","早","休","休","日","日","日","休","夜","明","休","日","日","早","早","日","休","日","休","日"]},{"role":"介福","name":"小川　萌","days":["休","日","日","日","日","休","日","休","日","日","日","日","休","日","日","早","休","休","日","日","日","早","休","日","日","日","日","日","休","休","日"]},{"role":"CM","name":"稲田　智子","days":["休","休","休","休","","F","","","","F","","","F","","","","F","","","F","","","","F","","","F","","","","F"]},{"role":"看護師CM","name":"今井　光江","days":["休","休","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休"]}]},{"label":"小規模多機能","year":2025,"mo":12,"days":31,"weekday_start":1,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["休","夜","/","休","日","夜","/","休","休","日","日","日","日","休","夜","/","休","日","日","日","休","夜","/","休","日","日","日","休","日","日","休"]},{"role":"看護師","name":"久野　真由美","days":["A","A","休","日","A","A","休","A","訪","A","A","休","A","A","A","早","休","早","A","訪","休","A","訪","A","休","A","A","休","A","早","休"]},{"role":"看護師","name":"兼信　真理","days":["日","休","日","遅","休","遅","日","休","日","休","遅","日","休","訪","遅","遅","日","訪","休","日","日","休","日","遅","日","休","遅","日","休","遅","日"]},{"role":"介福","name":"高橋由理子","days":["早","休","夜","/","休","早","早","休","早","夜","/","休","早","早","早","休","夜","/","休","早","早","早","休","夜","/","休","早","早","早","休","夜"]},{"role":"介福","name":"横山　稔代","days":["日","夜","/","休","夜","/","休","夜","/","休","早","夜","/","休","日","夜","/","休","早","夜","/","休","早","休","夜","/","休","夜","/","休","日"]},{"role":"介福","name":"柏原　美保","days":["休","早","早","早","休","休","日","早","夜","/","夜","/","休","夜","/","休","早","夜","/","休","夜","/","休","早","早","夜","/","休","夜","/","休"]},{"role":"介福","name":"加藤　良子","days":["休","日","休","日","日","日","日","休","日","休","日","日","日","日","休","日","日","日","有","休","日","日","休","日","日","休","日","日","日","休","日"]},{"role":"介福","name":"松井　綾香","days":["日","日","日","休","休","日","日","日","日","早","休","休","日","日","日","日","日","休","休","日","日","日","日","休","休","休","日","日","日","日","早"]},{"role":"介福","name":"吉田　かおり","days":["厨","休","日","厨","日","休","日","厨","休","日","厨","日","休","日","日","日","休","休","日","日","日","休","日","日","日","日","休","日","休","日","日"]},{"role":"基礎研","name":"佐々木　春菜","days":["/","休","日","夜","/","休","夜","/","休","日","休","早","夜","/","休","日","日","休","夜","/","休","日","夜","/","休","早","夜","/","休","夜","/"]},{"role":"実務","name":"漆川 富美子","days":["日","日","休","日","日","日","休","日","休","日","日","日","休","日","有","日","休","日","日","日","休","休","日","日","日","日","休","日","日","日","休"]},{"role":"CM","name":"稲田　智子","days":["Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ"]},{"role":"看護師CM","name":"今井　光江","days":["休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休"]}]},{"label":"小規模多機能","year":2025,"mo":11,"days":30,"weekday_start":6,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["日","日","休","夜","/","休","日","日","夜","/","休","日","夜","/","休","日","休","日","日","日","休","日","夜","/","休","日","日","休","休","日"]},{"role":"介福","name":"高橋由理子","days":["/","休","休","早","早","日","夜","/","休","早","早","休","早","早","休","夜","/","休","早","早","夜","/","休","早","休","早","日","夜","/","休"]},{"role":"介福","name":"横山　稔代","days":["夜","/","休","日","日","早","休","休","早","夜","/","夜","/","休","休","休","夜","/","休","夜","/","休","早","夜","/","休","早","日","夜","/"]},{"role":"介福","name":"柏原　美保","days":["早","夜","/","休","夜","/","休","夜","/","休","夜","/","休","休","夜","/","休","早","夜","/","休","早","日","休","夜","/","休","日","早","夜"]},{"role":"介福","name":"加藤　良子","days":["日","休","日","日","日","休","日","日","休","日","日","日","休","日","早","早","休","日","休","日","日","日","休","日","早","休","日","日","日","休"]},{"role":"介福","name":"松井　綾香","days":["休","休","早","日","日","日","日","早","休","有","日","日","日","日","休","休","日","日","日","日","早","休","休","日","日","日","日","早","休","休"]},{"role":"介福","name":"吉田　かおり","days":["日","日","休","日","日","休","早","日","日","日","休","早","休","有","早","休","早","夜","/","休","日","日","日","日","休","夜","/","休","厨","休"]},{"role":"基礎研","name":"佐々木　春菜","days":["休","早","夜","/","休","夜","/","休","日","休","日","日","日","夜","/","休","休","夜","/","休","日","夜","/","休","日","日","夜","/","休","早"]},{"role":"実務","name":"漆川 富美子","days":["日","日","日","休","休","日","日","日","日","休","日","休","日","日","有","日","日","休","休","日","日","日","日","休","日","日","休","休","日","日"]},{"role":"CM","name":"稲田　智子","days":["Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ"]},{"role":"看護師CM","name":"今井　光江","days":["休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休"]}]},{"label":"小規模多機能","year":2025,"mo":10,"days":31,"weekday_start":3,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["夜","/","休","日","日","夜","/","休","休","日","日","日","日","休","夜","/","休","日","日","日","休","夜","/","休","日","日","日","休","日","日","休"]},{"role":"介福","name":"高橋由理子","days":["早","休","夜","/","休","早","早","休","早","夜","/","休","早","早","早","休","夜","/","休","早","早","早","休","夜","/","休","早","早","早","休","夜"]},{"role":"介福","name":"横山　稔代","days":["日","夜","/","休","夜","/","休","夜","/","休","早","夜","/","休","日","夜","/","休","早","夜","/","休","早","休","夜","/","休","夜","/","休","日"]},{"role":"介福","name":"柏原　美保","days":["休","早","早","早","休","休","日","早","夜","/","夜","/","休","夜","/","休","早","夜","/","休","夜","/","休","早","早","夜","/","休","夜","/","休"]},{"role":"介福","name":"加藤　良子","days":["休","日","休","日","日","日","日","休","日","休","日","日","日","日","休","日","日","日","有","休","日","日","休","日","日","休","日","日","日","休","日"]},{"role":"介福","name":"松井　綾香","days":["日","日","日","休","休","日","日","日","日","早","休","休","日","日","日","日","日","休","休","日","日","日","日","休","休","休","日","日","日","日","早"]},{"role":"介福","name":"吉田　かおり","days":["厨","休","日","厨","日","休","日","厨","休","日","厨","日","休","日","日","日","休","休","日","日","日","休","日","日","日","日","休","日","休","日","日"]},{"role":"基礎研","name":"佐々木　春菜","days":["/","休","日","夜","/","休","夜","/","休","日","休","早","夜","/","休","日","日","休","夜","/","休","日","夜","/","休","早","夜","/","休","夜","/"]},{"role":"実務","name":"漆川 富美子","days":["日","日","休","日","日","日","休","日","休","日","日","日","休","日","有","日","休","日","日","日","休","休","日","日","日","日","休","日","日","日","休"]},{"role":"CM","name":"稲田　智子","days":["","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ"]},{"role":"看護師CM","name":"今井　光江","days":["K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","N"]}]},{"label":"小規模多機能","year":2025,"mo":9,"days":30,"weekday_start":1,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["休","日","夜","/","休","早","日","休","早","夜","/","休","早","日","早","休","夜","/","休","日","日","休","日","夜","/","休","早","日","早","休"]},{"role":"介福","name":"高橋由理子","days":["早","早","早","休","夜","/","休","早","休","早","早","夜","/","休","休","早","早","早","夜","/","休","早","早","早","休","夜","/","休","休","日"]},{"role":"介福","name":"横山　稔代","days":["夜","/","休","夜","/","休","早","夜","/","休","休","日","夜","/","休","夜","/","休","日","早","早","夜","/","休","日","休","夜","/","休","早"]},{"role":"介福","name":"柏原　美保","days":["/","休","日","早","早","夜","/","休","夜","/","休","日","休","夜","/","休","日","夜","/","休","夜","/","休","休","夜","/","休","早","夜","/"]},{"role":"介福","name":"加藤　良子","days":["日","日","休","日","日","休","有","有","日","休","日","休","日","日","日","休","日","日","日","日","休","日","休","日","日","休","日","日","日","休"]},{"role":"介福","name":"松井　綾香","days":["日","日","日","日","日","休","休","日","日","日","日","早","休","休","日","日","日","日","早","休","休","日","日","日","早","休","休","休","日","日"]},{"role":"介福","name":"吉田　かおり","days":["厨","厨","休","厨","休","日","日","厨","日","休","厨","日","日","休","厨","休","日","厨","休","日","日","厨","休","日","厨","日","休","休","厨","日"]},{"role":"基礎研","name":"佐々木　春菜","days":["休","夜","/","休","日","休","夜","/","休","日","夜","/","休","早","夜","/","休","日","日","夜","/","休","夜","/","休","日","休","夜","/","夜"]},{"role":"実務","name":"漆川 富美子","days":["日","日","休","有","日","日","休","日","日","日","休","日","日","休","日","日","休","日","日","日","休","日","日","休","日","日","日","休","日","休"]},{"role":"CM","name":"稲田　智子","days":["","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ"]},{"role":"看護師CM","name":"今井　光江","days":["K","N","K","居","N","休","休","K","N","K","居","N","休","休","K","N","K","居","研","休","休","K","N","K","居","N","休","休","K","N"]}]},{"label":"小規模多機能","year":2025,"mo":8,"days":31,"weekday_start":5,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["休","日","早","夜","/","休","日","休","日","早","日","休","夜","/","休","日","日","休","夜","/","休","早","日","日","休","日","夜","/","休","日","日"]},{"role":"介福","name":"高橋由理子","days":["夜","/","休","早","休","早","早","夜","/","休","早","休","早","早","夜","/","休","早","早","休","早","夜","/","休","早","休","日","早","夜","/","休"]},{"role":"介福","name":"横山　稔代","days":["早","夜","/","休","早","休","夜","/","休","有","夜","/","休","日","休","早","夜","/","休","早","夜","/","休","夜","/","休","早","夜","/","休","日"]},{"role":"介福","name":"柏原　美保","days":["日","早","休","休","夜","/","休","日","夜","/","休","夜","/","休","早","夜","/","休","早","夜","/","休","夜","/","休","夜","/","休","日","早","夜"]},{"role":"介福","name":"加藤　良子","days":["日","日","休","日","日","休","日","休","日","日","休","日","日","日","休","日","日","休","日","日","日","日","休","日","日","日","休","日","休","日","日"]},{"role":"介福","name":"松井　綾香","days":["日","休","休","日","日","日","日","早","休","日","日","日","日","日","日","休","休","日","日","日","日","日","休","休","日","日","日","日","早","休","休"]},{"role":"介福","name":"吉田　かおり","days":["休","日","日","厨","休","日","厨","日","日","休","厨","日","休","厨","日","日","日","休","日","休","厨","休","日","日","厨","休","日","厨","休","日","日"]},{"role":"基礎研","name":"佐々木　春菜","days":["/","休","夜","/","休","夜","/","休","休","夜","/","休","日","夜","/","休","早","夜","/","休","日","休","早","早","夜","/","休","日","日","夜","/"]},{"role":"実務","name":"漆川 富美子","days":["日","休","日","日","日","日","休","日","日","休","日","日","休","有","日","日","休","日","日","日","休","日","日","休","日","日","休","日","日","日","休"]},{"role":"CM","name":"稲田　智子","days":["","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ","","","Ｆ","","Ｆ","","Ｆ"]},{"role":"看護師CM","name":"今井　光江","days":["N","休","休","K","N","K","居","N","休","休","祝","N","K","休","休","休","休","K","N","K","居","N","休","休","K","N","K","居","N","休","休"]}]},{"label":"小規模多機能","year":2025,"mo":7,"days":31,"weekday_start":2,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["日","夜","/","休","日","休","日","夜","/","休","休","日","日","日","休","日","早","日","休","早","日","休","夜","/","休","日","日","日","休","夜","/"]},{"role":"介福","name":"高橋由理子","days":["早","休","日","夜","/","休","休","早","早","休","夜","/","休","有","有","早","休","夜","/","休","早","早","日","早","夜","/","休","早","早","早","休"]},{"role":"介福","name":"横山　稔代","days":["休","早","夜","/","休","早","夜","/","休","早","有","夜","/","休","夜","/","休","早","夜","/","休","夜","/","休","日","夜","/","休","夜","/","休"]},{"role":"介福","name":"柏原　美保","days":["/","休","早","休","夜","/","休","早","夜","/","休","早","早","夜","/","休","夜","/","休","夜","/","休","早","夜","/","休","早","夜","/","休","早"]},{"role":"介福","name":"加藤　良子","days":["休","日","日","休","日","日","日","日","休","日","日","日","休","日","日","日","休","日","日","日","休","日","日","休","日","日","休","日","日","休","日"]},{"role":"実務","name":"松井　綾香","days":["日","日","日","日","休","休","日","日","日","日","早","休","休","日","日","日","日","休","休","休","日","日","日","日","早","休","休","日","日","日","日"]},{"role":"基礎研","name":"佐々木　春菜","days":["夜","/","休","日","早","夜","/","休","日","夜","/","休","夜","/","休","夜","/","休","早","日","夜","/","休","日","休","早","夜","/","休","休","夜"]},{"role":"実務","name":"漆川 富美子","days":["日","日","休","日","日","休","日","早","休","日","日","休","日","日","日","休","日","日","休","日","日","日","休","日","日","休","日","休","日","日","日"]}]},{"label":"小規模多機能","year":2025,"mo":6,"days":30,"weekday_start":0,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["日","休","日","夜","/","休","日","日","休","日","夜","/","休","日","早","休","日","夜","/","休","日","日","日","休","夜","/","休","早","日","休"]},{"role":"介福","name":"高橋由理子","days":["休","早","早","日","休","夜","/","休","早","早","早","休","夜","/","休","早","休","日","早","夜","/","休","休","早","日","早","夜","/","休","早"]},{"role":"介福","name":"横山　稔代","days":["夜","/","休","早","休","早","夜","/","休","早","休","夜","/","休","夜","/","休","早","日","休","早","夜","/","休","早","夜","/","休","夜","/"]},{"role":"介福","name":"柏原　美保","days":["早","夜","/","休","早","休","日","早","夜","/","休","休","早","夜","/","休","夜","/","休","早","夜","/","休","夜","/","休","休","早","早","夜"]},{"role":"介福","name":"加藤　良子","days":["日","日","日","休","日","日","休","日","日","日","休","日","休","日","日","休","日","休","日","日","日","日","休","日","日","日","休","日","休","日"]},{"role":"介福","name":"松井　綾香","days":["休","日","日","日","日","日","休","休","日","日","日","日","早","休","休","日","早","日","日","日","休","休","日","日","日","日","早","休","休","日"]},{"role":"実務","name":"漆川 富美子","days":["休","日","日","休","日","日","日","日","休","早","日","休","日","日","日","日","日","休","日","休","日","日","日","日","休","休","日","日","休","日"]},{"role":"基礎研","name":"佐々木　春菜","days":["日","休","夜","/","休","日","早","休","日","夜","/","休","日","日","休","日","日","日","夜","/","休","休","早","日","日","休","日","日","日","休"]}]},{"label":"小規模多機能","year":2025,"mo":5,"days":31,"weekday_start":4,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["休","日","日","休","日","日","夜","/","休","日","日","休","日","夜","/","休","日","日","休","日","夜","/","休","日","日","日","休","夜","/","休","日"]},{"role":"介福","name":"高橋由理子","days":["早","夜","/","休","休","早","早","休","夜","/","休","早","休","早","早","夜","/","休","早","早","休","休","夜","/","休","早","早","早","早","夜","/"]},{"role":"介福","name":"横山　稔代","days":["休","早","夜","/","休","夜","/","休","早","早","早","夜","/","休","夜","/","休","早","夜","/","休","早","休","早","夜","/","休","日","夜","/","休"]},{"role":"介福","name":"柏原　美保","days":["/","休","早","夜","/","休","日","早","日","夜","/","休","夜","/","休","日","夜","/","休","夜","/","休","早","夜","/","休","夜","/","休","休","早"]},{"role":"介福","name":"加藤　良子","days":["日","休","日","日","日","日","休","日","日","休","休","日","日","日","休","日","日","日","日","休","日","日","日","日","休","日","日","日","休","日","休"]},{"role":"介福","name":"松井　綾香","days":["日","日","休","休","日","日","日","日","休","休","日","日","日","日","日","早","休","休","日","日","早","日","日","休","休","日","日","日","日","早","休"]},{"role":"実務","name":"漆川 富美子","days":["日","日","日","休","日","日","休","日","日","日","休","日","日","休","日","日","休","日","日","日","休","日","日","休","日","日","日","休","日","日","休"]},{"role":"基礎研","name":"佐々木　春菜","days":["休","日","日","早","夜","/","休","休","日","日","夜","/","休","日","日","休","早","日","休","日","日","夜","/","休","日","日","休","日","日","休","日"]}]},{"label":"小規模多機能","year":2025,"mo":4,"days":30,"weekday_start":2,"staff":[{"role":"管理者","name":"瀧本　大輔","days":["早","日","休","夜","/","休","日","早","夜","/","休","日","日","休","日","夜","/","休","日","日","日","休","夜","/","休","日","日","休","休","早"]},{"role":"介福","name":"加藤　良子","days":["日","日","休","日","日","日","休","日","休","日","日","日","日","休","日","日","休","日","日","休","日","日","休","休","半","日","休","日","休","日"]},{"role":"介福","name":"高橋由理子","days":["休","早","日","休","夜","/","休","休","早","日","夜","/","休","早","早","休","早","夜","/","休","早","早","日","早","夜","/","休","早","早","休"]},{"role":"実務","name":"横山　稔代","days":["休","休","夜","/","休","早","夜","/","休","休","早","夜","/","休","夜","/","休","早","日","夜","/","休","早","夜","/","休","早","日","夜","/"]},{"role":"実務","name":"柏原　美保","days":["/","休","早","休","早","夜","/","休","日","夜","/","休","夜","/","休","早","夜","/","休","早","夜","/","休","休","早","早","夜","/","休","夜"]},{"role":"介福","name":"松井　綾香","days":["日","日","日","早","休","休","日","日","日","早","休","休","休","日","日","日","日","日","休","休","日","日","日","日","休","休","日","日","日","日"]},{"role":"基礎研","name":"佐々木　春菜","days":["日","夜","/","休","日","休","日","日","日","休","有","日","早","日","休","日","休","休","早","日","日","日","休","日","日","夜","/","休","休","日"]},{"role":"実務","name":"漆川 富美子","days":["日","日","日","休","日","休","日","日","休","日","日","休","日","日","日","休","日","日","日","日","休","日","日","休","日","日","休","休","日","日"]}]}],"day":[{"label":"デイサービス","year":2026,"mo":2,"days":28,"weekday_start":0,"staff":[{"role":"生活相談員","name":"前原　健","days":["休","①","①","①","①","①","休","休","①","①","①","①","休","①","休","①","①","①","①","4/有","休","休","①","①","①","①","休","①"]},{"role":"介護職員","name":"渡辺　未稀","days":["休","①","休","①","①","①","","休","①","①","①","①","","休","休","①","①","①","休","4.0","①","休","①","①","①","①","","休"]},{"role":"生活相談員","name":"渡辺　未稀","days":["","","","","","","①","","","","","","①","","","","","","","4.0","","","","","","","①",""]},{"role":"介護職員","name":"阪本　江都子","days":["休","①","①","①","①","①","休","休","①","①","①","①","①","休","休","①","7/有","①","①","①","休","休","①","①","①","①","4/有","休"]},{"role":"介護職員","name":"姫路　智恵美","days":["休","①","①","①","①","休","①","休","①","①","①","①","①","休","休","①","①","①","①","休","①","休","①","①","①","①","①","休"]},{"role":"介護職員","name":"太田　裕子","days":["休","①","①","①","①","①","休","休","有","①","①","①","①","①","休","休","①","①","①","①","休","休","①","①","休","①","①","①"]},{"role":"介護職員","name":"竹下　律子","days":["休","②","休","②","②","②","②","休","②","休","②","②","②","②","休","②","②","②","②","②","休","休","②","②","②","②","②","休"]},{"role":"介護職員","name":"平野　紗弥","days":["休","有","②","②","休","②","有","休","②","②","②","②","②","休","休","②","②","休","②","②","②","休","②","②","②","休","②","②"]},{"role":"介護職員","name":"中塚　昭子","days":["休","③","②","休","③","②","休","休","③","③","休","休","③","休","休","③","有","③","③","②","休","休","休","休","③","③","②","休"]},{"role":"介護職員","name":"橘　沙也佳","days":["休","④","④","④","④","休","休","休","④","④","休","休","④","休","休","④","④","④","④","④","休","休","休","④","④","④","④","休"]}]}]};
+
+// ===== ROLES =====
+const ROLE_LABELS={
+  admin:'システム管理者',doctor:'医師',manager:'管理者',
+  'office-clinic':'医院事務','nurse-clinic':'医院看護師','nurse-facility':'施設看護師',
+  'care-sako':'介護職員（サ高住）','care-kotaki':'介護職員（小多機）',
+  'care-houmon':'訪問介護職員','care-day':'デイサービス職員',
+  kyotaku:'居宅介護支援職員',board:'理事会',
+};
+
+const DEPTS=[
+  {id:'all',     name:'全体',         icon:'🏛️',  roles:['all']},
+  {id:'clinic',  name:'医院',         icon:'🏥',  roles:['admin','manager','doctor','office-clinic','nurse-clinic','kyotaku'], noData:true},
+  {id:'sako',    name:'サ高住',       icon:'🏠',  roles:['admin','manager','doctor','nurse-facility','care-sako']},
+  {id:'kotaki',  name:'小規模多機能', icon:'⭐',  roles:['admin','manager','doctor','nurse-facility','care-kotaki']},
+  {id:'houmon',  name:'訪問介護',     icon:'🚗',  roles:['admin','manager','nurse-facility','care-houmon','kyotaku']},
+  {id:'day',     name:'デイサービス', icon:'☀️',  roles:['admin','manager','nurse-facility','care-day']},
+  {id:'kyotaku', name:'居宅介護支援', icon:'📋',  roles:['admin','manager','doctor','nurse-facility','kyotaku'], noData:true},
+];
+
+// ===== STATE =====
+const DATA_VERSION='v4';
+if(localStorage.getItem('vs_version')!==DATA_VERSION){
+  ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
+  localStorage.setItem('vs_version',DATA_VERSION);
+}
+
+const DEFAULT_USERS=[
+  {id:1,name:'山田 義雄',email:'admin@aura-net.jp',password:'admin123',role:'admin',dept:'システム管理',active:true},
+  {id:2,name:'鈴木 一郎',email:'doctor@aura-net.jp',password:'demo123',role:'doctor',dept:'内科・外科',active:true},
+  {id:12,name:'加藤 誠',email:'manager@aura-net.jp',password:'demo123',role:'manager',dept:'施設管理者',active:true},
+  {id:3,name:'田中 明美',email:'office@aura-net.jp',password:'demo123',role:'office-clinic',dept:'医院事務',active:true},
+  {id:4,name:'佐藤 花子',email:'nurse-clinic@aura-net.jp',password:'demo123',role:'nurse-clinic',dept:'外来看護師',active:true},
+  {id:5,name:'伊藤 美咲',email:'nurse-facility@aura-net.jp',password:'demo123',role:'nurse-facility',dept:'施設看護師',active:true},
+  {id:6,name:'渡辺 健太',email:'care-sako@aura-net.jp',password:'demo123',role:'care-sako',dept:'サ高住',active:true},
+  {id:7,name:'松本 真理',email:'care-kotaki@aura-net.jp',password:'demo123',role:'care-kotaki',dept:'小多機',active:true},
+  {id:8,name:'高橋 拓哉',email:'care-houmon@aura-net.jp',password:'demo123',role:'care-houmon',dept:'訪問介護',active:true},
+  {id:9,name:'中村 恵子',email:'care-day@aura-net.jp',password:'demo123',role:'care-day',dept:'デイサービス',active:true},
+  {id:10,name:'小林 俊介',email:'kyotaku@aura-net.jp',password:'demo123',role:'kyotaku',dept:'居宅支援',active:true},
+  {id:11,name:'木下 理事長',email:'board@aura-net.jp',password:'demo123',role:'board',dept:'理事会',active:true},
+];
+
+let currentUser=null;
+let currentDept=null;
+let currentMonthIdx=0;
+const WEEKDAYS=['日','月','火','水','木','金','土'];
+
+function getUsers(){return JSON.parse(localStorage.getItem('vs_users')||'null')||DEFAULT_USERS;}
+const AVATAR_COLORS=['#2e7d5e','#c62828','#1565c0','#6a1b9a','#e65100','#00695c','#4527a0','#ad1457','#37474f','#558b2f','#0277bd'];
+function avatarColor(id){return AVATAR_COLORS[(id-1)%AVATAR_COLORS.length];}
+function initials(n){if(!n)return'?';const p=n.trim().split(/\s+/);return p.length>=2?p[0][0]+p[1][0]:n.substring(0,2);}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showToast(msg,ms=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);}
+function canAccessDept(dept){return dept.roles.includes('all')||dept.roles.includes(currentUser.role)||currentUser.role==='admin';}
+
+// ===== LOGIN =====
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  const users=getUsers();
+  const user=users.find(u=>u.email===email&&u.password===pw);
+  if(!user){document.getElementById('loginError').textContent='メールアドレスまたはパスワードが正しくありません';return;}
+  if(!user.active){document.getElementById('loginError').textContent='このアカウントは無効化されています';return;}
+  currentUser=user;
+  startApp();
+}
+function doLogout(){
+  currentUser=null;
+  localStorage.removeItem('vs_session');
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+
+// ===== SSO: チャットからセッション引き継ぎ =====
+function tryAutoLogin(){
+  const session=localStorage.getItem('vs_session');
+  if(!session)return false;
+  try{
+    const uid=JSON.parse(session);
+    const users=getUsers();
+    const user=users.find(u=>u.id===uid);
+    if(user&&user.active){currentUser=user;return true;}
+  }catch(e){}
+  return false;
+}
+
+// ===== APP =====
+function startApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  const u=currentUser;
+  document.getElementById('navName').textContent=u.name;
+  document.getElementById('navRole').textContent=ROLE_LABELS[u.role]||u.role;
+  const av=document.getElementById('navAvatar');
+  av.style.background=avatarColor(u.id);
+  av.textContent=initials(u.name);
+  renderDeptList();
+  const first=DEPTS.find(d=>canAccessDept(d));
+  if(first)selectDept(first.id);
+}
+
+function renderDeptList(){
+  const list=document.getElementById('deptList');
+  list.innerHTML='';
+  DEPTS.forEach(d=>{
+    if(!canAccessDept(d))return;
+    const el=document.createElement('div');
+    el.className='dept-item';el.id='dept-'+d.id;
+    el.onclick=()=>selectDept(d.id);
+    el.innerHTML=`<span class="dept-icon">${d.icon}</span><span class="dept-name">${d.name}</span>`;
+    list.appendChild(el);
+  });
+}
+
+function selectDept(id){
+  currentDept=id;currentMonthIdx=0;
+  document.querySelectorAll('.dept-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('dept-'+id);if(el)el.classList.add('active');
+  renderContent();
+}
+
+// ===== RENDER =====
+function getDeptDataKey(deptId){
+  const map={sako:'sako',kotaki:'kotaki',houmon:'houmon',day:'day'};
+  return map[deptId]||null;
+}
+
+function renderContent(){
+  const dept=DEPTS.find(d=>d.id===currentDept);
+  const content=document.getElementById('shiftContent');
+
+  if(!dept){content.innerHTML='';return;}
+
+  const dataKey=getDeptDataKey(dept.id);
+  const monthList=dataKey?SHIFT_DATA[dataKey]:null;
+
+  if(!monthList||monthList.length===0){
+    content.innerHTML=`<div class="empty-state" style="margin-top:60px">
+      <div class="e-icon">${dept.icon}</div>
+      <p>${dept.name}のシフトデータはありません</p>
+      <small>シフト表がアップロードされると表示されます</small>
+    </div>`;
+    return;
+  }
+
+  // 月タブ（複数月がある場合）
+  let html='';
+  if(monthList.length>1){
+    html+=`<div class="month-tabs">`;
+    monthList.forEach((m,i)=>{
+      const label=`${m.year}年${m.mo}月`;
+      html+=`<div class="month-tab ${i===currentMonthIdx?'active':''}" onclick="selectMonth(${i})">${label}</div>`;
+    });
+    html+=`</div>`;
+  }
+
+  const mData=monthList[currentMonthIdx];
+  html+=renderShiftTable(dept,mData);
+  content.innerHTML=html;
+}
+
+function selectMonth(idx){
+  currentMonthIdx=idx;
+  renderContent();
+}
+
+function renderShiftTable(dept,mData){
+  const {year,mo,days,weekday_start,staff,label}=mData;
+  const monthLabel=`${year}年${mo}月`;
+
+  // 凡例
+  const legend=`<div class="legend">
+    <span style="font-size:11px;font-weight:700;color:#555;margin-right:6px">凡例：</span>
+    <span class="legend-item"><span class="legend-swatch s-day" style="border:1px solid #ddd"></span>日勤</span>
+    <span class="legend-item"><span class="legend-swatch s-night"></span>夜勤</span>
+    <span class="legend-item"><span class="legend-swatch s-morning"></span>明け</span>
+    <span class="legend-item"><span class="legend-swatch s-early"></span>早番</span>
+    <span class="legend-item"><span class="legend-swatch s-late"></span>遅番</span>
+    <span class="legend-item"><span class="legend-swatch s-off"></span>休み</span>
+    <span class="legend-item"><span class="legend-swatch s-leave"></span>有休</span>
+    <span class="legend-item"><span class="legend-swatch s-other"></span>その他</span>
+  </div>`;
+
+  // テーブルヘッダー
+  let dayHeaders='';
+  let wdHeaders='';
+  for(let d=1;d<=days;d++){
+    const wd=(weekday_start+(d-1))%7;
+    const isSun=wd===0;const isSat=wd===6;
+    const cls=isSun?'th-sun':isSat?'th-sat':'';
+    dayHeaders+=`<th class="${cls}">${d}</th>`;
+    wdHeaders+=`<th class="${cls}">${WEEKDAYS[wd]}</th>`;
+  }
+
+  let tableHtml=`<div class="table-wrap"><table class="shift-table">
+    <thead>
+      <tr>
+        <th class="th-role">職種</th>
+        <th class="th-name">氏名</th>
+        ${dayHeaders}
+      </tr>
+      <tr class="tr-weekday">
+        <th class="th-role"></th>
+        <th class="th-name"></th>
+        ${wdHeaders}
+      </tr>
+    </thead>
+    <tbody>`;
+
+  staff.forEach(s=>{
+    const nameEsc=escHtml(s.name.replace(/\s+/g,' ').trim());
+    const roleEsc=escHtml(s.role.replace(/\n/g,' ').trim());
+    let cells='';
+    for(let d=1;d<=days;d++){
+      const wd=(weekday_start+(d-1))%7;
+      const isSun=wd===0;const isSat=wd===6;
+      const colCls=isSun?'th-sun-col':isSat?'th-sat-col':'';
+      const val=s.days[d-1]||'';
+      const cellCls=getShiftClass(val);
+      const disp=escHtml(val)||'&nbsp;';
+      cells+=`<td class="${cellCls} ${colCls}">${disp}</td>`;
+    }
+    tableHtml+=`<tr>
+      <td class="td-role">${roleEsc}</td>
+      <td class="td-name">${nameEsc}</td>
+      ${cells}
+    </tr>`;
+  });
+
+  tableHtml+=`</tbody></table></div>`;
+
+  return `<div>
+    <div class="shift-title">
+      <div>
+        <h2>${dept.icon} ${dept.name} — ${monthLabel}シフト</h2>
+        <div class="shift-meta">${staff.length}名 / ${days}日間</div>
+      </div>
+    </div>
+    ${legend}
+    ${tableHtml}
+  </div>`;
+}
+
+function getShiftClass(val){
+  if(!val||val==='&nbsp;')return 's-empty';
+  const v=val.trim();
+  if(!v)return 's-empty';
+  // 休み系
+  if(v==='／'||v==='/'||v==='休'||v==='休み')return 's-off';
+  // 夜勤
+  if(v==='夜'||v.startsWith('夜'))return 's-night';
+  // 明け
+  if(v==='明'||v.startsWith('明'))return 's-morning';
+  // 早番（早①早②など）
+  if(v==='早'||v.startsWith('早'))return 's-early';
+  // 遅番
+  if(v==='遅'||v.startsWith('遅'))return 's-late';
+  // 有休
+  if(v==='有'||v.includes('有'))return 's-leave';
+  // 厨房
+  if(v==='厨')return 's-kitchen';
+  // 日勤（日、日/休、日/有 etc）
+  if(v==='日'||v.startsWith('日'))return 's-day';
+  // 空欄
+  if(v===''||v==='　')return 's-empty';
+  // その他（コード類：①②③④ A B F K N 居など）
+  return 's-other';
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded',()=>{
+  if(tryAutoLogin()){
+    startApp();
+  }
+});
+document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+</script>
+</body>
+</html>
