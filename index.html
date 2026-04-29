@@ -1065,9 +1065,7 @@ function startApp(){
   // show hamburger on mobile after login
   if(window.innerWidth<=768) document.getElementById('topNavHam').style.display='flex';
   const key=localStorage.getItem('gemini_api_key')||'';
-  document.getElementById('geminiKeyInput').value=key;
   document.getElementById('adminGeminiKey').value=key;
-  if(key)document.getElementById('botKeyBar').style.display='none';
   renderChannels(); renderDMList(); updateSurveyBadge();
   const first=CHANNELS.find(c=>canAccess(c,u.role));
   if(first)selectChannel(first.id);
@@ -1217,8 +1215,8 @@ function closeSidebar(){ document.getElementById('sidebar').classList.remove('op
 
 // ===== BOT =====
 function toggleBot(){ /* bot panel removed */ }
-function saveGeminiKey(){ const k=document.getElementById('geminiKeyInput').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); document.getElementById('adminGeminiKey').value=k; document.getElementById('botKeyBar').style.display='none'; showToast('Gemini APIキーを設定しました ✨'); }
-function saveGeminiKeyAdmin(){ const k=document.getElementById('adminGeminiKey').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); document.getElementById('geminiKeyInput').value=k; document.getElementById('botKeyBar').style.display='none'; showToast('Gemini APIキーを保存しました ✨'); }
+function saveGeminiKey(){ const k=document.getElementById('adminGeminiKey').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); showToast('Gemini APIキーを設定しました ✨'); }
+function saveGeminiKeyAdmin(){ const k=document.getElementById('adminGeminiKey').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); showToast('Gemini APIキーを保存しました ✨'); }
 
 function buildManualContext(){
   return manuals.filter(m=>canAccessManual(m)).map(m=>`【${m.name}】\n${m.content}`).join('\n\n');
