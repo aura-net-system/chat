@@ -399,12 +399,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
     <span class="logo-icon">🏘️</span>
     <span class="logo-text">AURA <span class="sq">NET</span></span>
   </div>
-  <div class="nav-tabs">
+  <div class="nav-tabs" id="navTabs" style="display:none">
     <div class="nav-tab active" onclick="showHome()">💬 チャット</div>
     <a class="nav-tab" href="shift.html">📅 シフト</a>
     <a class="nav-tab" href="ai-faq.html">✨ AI FAQ</a>
   </div>
   <div class="nav-right">
+    <span style="font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.5px;padding-right:4px">v7</span>
     <div class="user-pill" id="userPill" style="display:none">
       <div class="nav-avatar" id="navAvatar"></div>
       <div>
@@ -1162,6 +1163,7 @@ function doLogout(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('userPill').style.display='none';
   document.getElementById('navLogout').style.display='none';
+  document.getElementById('navTabs').style.display='none';
   document.getElementById('topNavHam').style.display='none';
   showToast('ログアウトしました');
 }
@@ -1183,6 +1185,7 @@ function startApp(){
   document.getElementById('navRole').textContent=ROLE_LABELS[u.role]||'';
   document.getElementById('userPill').style.display='flex';
   document.getElementById('navLogout').style.display='';
+  document.getElementById('navTabs').style.display='flex';
   // show hamburger on mobile after login
   if(window.innerWidth<=768) document.getElementById('topNavHam').style.display='flex';
   renderChannels(); renderDMList(); updateSurveyBadge();
