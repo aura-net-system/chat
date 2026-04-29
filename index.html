@@ -516,6 +516,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('users')">👥 職員</button>
         <button class="tab-btn" onclick="switchTab('adduser')">➕ 追加</button>
+        <button class="tab-btn" onclick="switchTab('passwords')">🔑 PW管理</button>
         <button class="tab-btn" onclick="switchTab('manuals')">📚 マニュアル</button>
         <button class="tab-btn" onclick="switchTab('surveys')">🗳️ アンケート</button>
         <button class="tab-btn" onclick="switchTab('settings')">🔒 設定</button>
@@ -728,6 +729,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
       </div>
 
       <!-- SETTINGS -->
+      <!-- PASSWORDS -->
+      <div class="tab-content" id="tab-passwords">
+        <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+          <input type="text" placeholder="名前・メールで検索…" id="pwSearch" oninput="filterPwTable()"
+            style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <span id="pwCount" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="user-table">
+            <thead><tr>
+              <th>名前</th>
+              <th>職種</th>
+              <th>メールアドレス</th>
+              <th>現在のパスワード</th>
+              <th>新しいパスワード</th>
+              <th>操作</th>
+            </tr></thead>
+            <tbody id="pwTableBody"></tbody>
+          </table>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px">※ パスワードは8文字以上を推奨します。変更後は本人にお知らせください。</p>
+      </div>
+
       <div class="tab-content" id="tab-settings">
         <div style="display:flex;flex-direction:column;gap:13px">
           <div style="padding:15px;background:var(--chat-bg);border-radius:10px">
@@ -1533,10 +1557,11 @@ function openAdmin(){
 }
 function closeAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
 function switchTab(tab){
-  const tabs=['users','adduser','manuals','surveys','settings'];
+  const tabs=['users','adduser','passwords','manuals','surveys','settings'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===tab));
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='passwords') renderPwTable();
 }
 
 // USERS
@@ -1559,6 +1584,76 @@ function renderUserTable(filter=''){
     </tr>`).join('');
 }
 function filterUsers(){ renderUserTable(document.getElementById('userSearch').value); }
+
+// PASSWORD MANAGEMENT
+function renderPwTable(filter=''){
+  const fl=filter.toLowerCase();
+  const filtered=users.filter(u=>u.name.toLowerCase().includes(fl)||u.email.toLowerCase().includes(fl));
+  document.getElementById('pwCount').textContent=`${filtered.length}名`;
+  document.getElementById('pwTableBody').innerHTML=filtered.map(u=>`
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar" style="width:27px;height:27px;font-size:11px;background:${avatarColor(u.id)}">${initials(u.name)}</div>
+        <span style="font-weight:600">${escHtml(u.name)}</span></div></td>
+      <td style="font-size:12px">${ROLE_LABELS[u.role]||u.role}</td>
+      <td style="color:var(--text-muted);font-size:12px">${escHtml(u.email)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="text" id="pw-current-${u.id}" value="${escHtml(u.password)}"
+            style="width:130px;padding:5px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:monospace;background:#f8f9fa" readonly>
+          <button onclick="togglePwVisibility(${u.id})" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px" title="表示/非表示">👁</button>
+        </div>
+      </td>
+      <td>
+        <input type="text" id="pw-new-${u.id}" placeholder="新しいパスワード"
+          style="width:150px;padding:5px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12px"
+          oninput="checkAdminPwStrength(${u.id},this.value)">
+        <div id="pw-strength-${u.id}" style="font-size:10px;margin-top:2px;color:var(--text-muted)"></div>
+      </td>
+      <td>
+        <button class="btn btn-primary btn-sm" onclick="adminResetPw(${u.id})">変更</button>
+      </td>
+    </tr>`).join('');
+  // 初期表示はマスク
+  filtered.forEach(u=>{
+    const el=document.getElementById(`pw-current-${u.id}`);
+    if(el) el.type='password';
+  });
+}
+function filterPwTable(){ renderPwTable(document.getElementById('pwSearch').value); }
+function togglePwVisibility(id){
+  const el=document.getElementById(`pw-current-${id}`);
+  if(!el)return;
+  el.type=el.type==='password'?'text':'password';
+}
+function checkAdminPwStrength(id,val){
+  const el=document.getElementById(`pw-strength-${id}`);
+  if(!el)return;
+  if(!val){el.textContent='';return;}
+  let score=0;
+  if(val.length>=8)score++;
+  if(/[A-Z]/.test(val))score++;
+  if(/[0-9]/.test(val))score++;
+  if(/[^A-Za-z0-9]/.test(val))score++;
+  const labels=['弱い','やや弱い','普通','強い'];
+  const colors=['var(--danger)','var(--warning)','#1565c0','var(--success)'];
+  el.textContent='強度：'+labels[score]||'強い';
+  el.style.color=colors[score]||colors[3];
+}
+function adminResetPw(id){
+  const u=users.find(u=>u.id===id);
+  const newPw=document.getElementById(`pw-new-${id}`).value.trim();
+  if(!u)return;
+  if(!newPw){showToast('新しいパスワードを入力してください');return;}
+  if(newPw.length<4){showToast('4文字以上のパスワードを設定してください');return;}
+  u.password=newPw;
+  saveData();
+  document.getElementById(`pw-current-${id}`).value=newPw;
+  document.getElementById(`pw-new-${id}`).value='';
+  document.getElementById(`pw-strength-${id}`).textContent='';
+  showToast(`${u.name}のパスワードを変更しました`);
+}
+
 function toggleUserActive(id,active){ const u=users.find(u=>u.id===id);if(!u)return; u.active=active;saveData();renderUserTable(document.getElementById('userSearch').value);renderDMList();showToast(`${u.name}のアクセスを${active?'有効化':'停止'}しました`); }
 function deleteUser(id){ if(!confirm('この職員を削除しますか？'))return; users=users.filter(u=>u.id!==id);saveData();renderUserTable(document.getElementById('userSearch').value);renderDMList();showToast('職員を削除しました'); }
 function addUser(){
