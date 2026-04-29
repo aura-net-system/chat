@@ -669,17 +669,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
         <div style="margin-bottom:12px">
           <select id="manualCatFilter" onchange="renderManualList()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;width:100%">
             <option value="">── カテゴリで絞り込み ──</option>
-            <option>全職員共通</option>
-            <option>医師</option>
-            <option>医院看護師</option>
-            <option>施設看護師</option>
-            <option>医院事務</option>
-            <option>介護職員（サ高住）</option>
-            <option>介護職員（小多機）</option>
-            <option>訪問介護職員</option>
-            <option>デイサービス職員</option>
-            <option>居宅介護支援員</option>
-            <option>管理職・理事会</option>
+            <optgroup label="全体">
+              <option>全職員共通</option>
+              <option value="__医院全体__">🏥 医院全体</option>
+              <option value="__施設全体__">🏠 施設全体</option>
+            </optgroup>
+            <optgroup label="職種別">
+              <option>医師</option>
+              <option>医院看護師</option>
+              <option>医院事務</option>
+              <option>施設看護師</option>
+              <option>介護職員（サ高住）</option>
+              <option>介護職員（小多機）</option>
+              <option>訪問介護職員</option>
+              <option>デイサービス職員</option>
+              <option>居宅介護支援員</option>
+              <option>管理職・理事会</option>
+            </optgroup>
           </select>
         </div>
         <!-- Add Form -->
@@ -1714,18 +1720,28 @@ function addUser(){
 }
 
 // MANUALS
-const MANUAL_CATEGORIES = ['全職員共通','医師','医院看護師','施設看護師','医院事務','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員','管理職・理事会'];
+const MANUAL_CATEGORIES = ['全職員共通','医院全体','施設全体','医師','医院看護師','医院事務','施設看護師','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員','管理職・理事会'];
+const CAT_GROUP_医院 = ['医院全体','医師','医院看護師','医院事務','居宅介護支援員'];
+const CAT_GROUP_施設 = ['施設全体','医師','施設看護師','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員'];
 function toggleAddManual(){
   const f=document.getElementById('addManualForm');
   const open=f.style.display==='none'||!f.style.display;
   f.style.display=open?'block':'none';
   if(open){
     const box=document.getElementById('manualCategoryChecks'); box.innerHTML='';
-    MANUAL_CATEGORIES.forEach(cat=>{
-      const id='mcat-'+cat;
-      box.insertAdjacentHTML('beforeend',
-        `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fff;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
-          <input type="checkbox" id="${id}" value="${cat}" style="accent-color:var(--primary)">${cat}</label>`);
+    const groups=[
+      {label:'全体', cats:['全職員共通','医院全体','施設全体']},
+      {label:'医院', cats:['医師','医院看護師','医院事務']},
+      {label:'施設', cats:['施設看護師','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員']},
+      {label:'管理', cats:['管理職・理事会']},
+    ];
+    groups.forEach(g=>{
+      box.insertAdjacentHTML('beforeend',`<div style="width:100%;font-size:10px;font-weight:800;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase;margin-top:6px;margin-bottom:2px">${g.label}</div>`);
+      g.cats.forEach(cat=>{
+        box.insertAdjacentHTML('beforeend',
+          `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fff;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
+            <input type="checkbox" value="${cat}" style="accent-color:var(--primary)">${cat}</label>`);
+      });
     });
   }
 }
@@ -1734,6 +1750,8 @@ function renderManualList(){
   const list=document.getElementById('manualList');
   const filtered=filter?manuals.filter(m=>{
     const cats=Array.isArray(m.category)?m.category:[m.category];
+    if(filter==='__医院全体__') return cats.some(c=>CAT_GROUP_医院.includes(c)||c==='全職員共通');
+    if(filter==='__施設全体__') return cats.some(c=>CAT_GROUP_施設.includes(c)||c==='全職員共通');
     return cats.includes(filter);
   }):manuals;
   list.innerHTML=filtered.map(m=>{
