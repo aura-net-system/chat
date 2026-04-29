@@ -323,6 +323,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 .typing-dot:nth-child(3){animation-delay:.4s}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-5px);opacity:1}}
 
+/* STAMPS */
+.stamp-btn{background:none;border:none;font-size:19px;cursor:pointer;padding:4px 7px;border-radius:8px;transition:background .15s;line-height:1}
+.stamp-btn:hover{background:rgba(0,0,0,.06)}
+.stamp-picker{display:none;position:absolute;bottom:60px;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.13);z-index:50;padding:10px}
+.stamp-picker.open{display:block}
+.stamp-tabs{display:flex;gap:4px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.stamp-tab{padding:4px 12px;font-size:12px;font-weight:700;border-radius:20px;cursor:pointer;color:var(--text-muted);border:none;background:none;transition:all .15s}
+.stamp-tab.active{background:var(--primary);color:#fff}
+.stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.stamp-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:10px;cursor:pointer;transition:background .15s;border:none;background:none}
+.stamp-item:hover{background:var(--primary-light)}
+.stamp-item .s-emoji{font-size:32px;line-height:1}
+.stamp-item .s-label{font-size:10px;font-weight:700;color:var(--text-muted);text-align:center;line-height:1.2}
+.bubble.stamp-bubble{background:transparent!important;border:none!important;padding:0!important;box-shadow:none!important}
+.bubble.stamp-bubble .stamp-msg{display:flex;flex-direction:column;align-items:center;gap:4px}
+.bubble.stamp-bubble .stamp-msg .s-emoji{font-size:56px;line-height:1}
+.bubble.stamp-bubble .stamp-msg .s-label{font-size:12px;font-weight:700;color:var(--text-primary)}
+
 /* GROUP TAGS */
 .group-tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;margin-left:4px}
 .group-clinic{background:#e3f2fd;color:#1565c0}
@@ -496,11 +514,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
             <p style="font-size:13px;margin-top:8px">チャンネルまたはメンバーを選択してください</p>
           </div>
         </div>
-        <div class="chat-input-area">
+        <div class="chat-input-area" style="position:relative">
+          <div class="stamp-picker" id="stampPicker">
+            <div class="stamp-tabs" id="stampTabs"></div>
+            <div class="stamp-grid" id="stampGrid"></div>
+          </div>
           <div class="input-wrapper">
             <textarea class="msg-input" id="msgInput" rows="1" placeholder="メッセージを入力…"
               onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
             <div class="input-actions">
+              <button class="stamp-btn" onclick="toggleStampPicker(event)" title="スタンプ">🏷️</button>
               <button class="attach-btn" onclick="triggerAttach()" title="ファイル添付">📎</button>
               <button class="attach-btn" onclick="triggerPhoto()" title="写真">📷</button>
               <button class="send-btn" onclick="sendMessage()">➤</button>
@@ -1193,11 +1216,13 @@ function renderMessages(){
     const row=document.createElement('div'); row.className='msg-row '+(isOwn?'own':'other');
     let avHtml=!isOwn?`<div class="msg-avatar-chat ${showAv?'':'hidden'}" style="background:${avatarColor(user.id)}">${initials(user.name)}</div>`:'';
     let bContent='';
+    let bubbleClass='bubble';
     if(msg.type==='image') bContent=`<img src="${msg.src}" class="image-msg" onclick="viewImage('${msg.src}')" alt="画像">`;
     else if(msg.type==='file') bContent=`<div class="file-msg">📄 ${escHtml(msg.filename)} <span style="font-size:11px;color:#888">${msg.size||''}</span></div>`;
+    else if(msg.type==='stamp'){ bContent=`<div class="stamp-msg"><div class="s-emoji">${msg.emoji}</div><div class="s-label">${escHtml(msg.label)}</div></div>`; bubbleClass='bubble stamp-bubble'; }
     else bContent=escHtml(msg.text);
     const senderHtml=(!isOwn&&showAv)?`<div class="msg-sender">${escHtml(user.name)} · ${ROLE_LABELS[user.role]||''}</div>`:'';
-    row.innerHTML=`${avHtml}<div class="msg-content">${senderHtml}<div class="bubble">${bContent}</div><div class="msg-meta"><span>${msg.time}</span>${isOwn?'<span class="read-indicator">✓✓</span>':''}</div></div>`;
+    row.innerHTML=`${avHtml}<div class="msg-content">${senderHtml}<div class="${bubbleClass}">${bContent}</div><div class="msg-meta"><span>${msg.time}</span>${isOwn?'<span class="read-indicator">✓✓</span>':''}</div></div>`;
     container.appendChild(row); prevUId=msg.userId;
   });
   container.scrollTop=container.scrollHeight;
@@ -1218,6 +1243,84 @@ function sendMessage(){
 }
 function triggerAttach(){ document.getElementById('fileInput').click(); }
 function triggerPhoto(){ document.getElementById('photoInput').click(); }
+
+// ===== STAMPS =====
+const STAMPS = {
+  '返事': [
+    {emoji:'👍',label:'了解！'},
+    {emoji:'✅',label:'承知しました'},
+    {emoji:'🙏',label:'よろしく！'},
+    {emoji:'👌',label:'OK！'},
+    {emoji:'💪',label:'任せて！'},
+    {emoji:'🤝',label:'対応します'},
+    {emoji:'📋',label:'確認しました'},
+    {emoji:'⏰',label:'後で確認'},
+  ],
+  '感謝': [
+    {emoji:'🌟',label:'ありがとう！'},
+    {emoji:'😊',label:'助かります！'},
+    {emoji:'🎉',label:'お疲れ様！'},
+    {emoji:'💐',label:'ご苦労様！'},
+    {emoji:'👏',label:'さすがです！'},
+    {emoji:'🌸',label:'素晴らしい！'},
+    {emoji:'☕',label:'ゆっくり休んで'},
+    {emoji:'💌',label:'いつもありがとう'},
+  ],
+  '挨拶': [
+    {emoji:'☀️',label:'おはようございます'},
+    {emoji:'🌙',label:'お先に失礼します'},
+    {emoji:'🚶',label:'いってきます'},
+    {emoji:'🏠',label:'ただいまです'},
+    {emoji:'🌆',label:'お疲れ様でした'},
+    {emoji:'🤒',label:'お大事に'},
+    {emoji:'💊',label:'ご回復を'},
+    {emoji:'🎊',label:'おめでとう！'},
+  ],
+  '業務': [
+    {emoji:'🚨',label:'急ぎ対応！'},
+    {emoji:'📞',label:'折り返し電話'},
+    {emoji:'📝',label:'記録しました'},
+    {emoji:'🔔',label:'連絡ありがとう'},
+    {emoji:'⚠️',label:'要確認'},
+    {emoji:'🏃',label:'すぐ行きます'},
+    {emoji:'👀',label:'確認中'},
+    {emoji:'🔑',label:'引き継ぎます'},
+  ],
+};
+let stampTabActive='返事';
+function toggleStampPicker(e){
+  e.stopPropagation();
+  const p=document.getElementById('stampPicker');
+  if(p.classList.contains('open')){p.classList.remove('open');return;}
+  renderStampPicker();
+  p.classList.add('open');
+}
+function renderStampPicker(){
+  const tabs=document.getElementById('stampTabs');
+  const grid=document.getElementById('stampGrid');
+  tabs.innerHTML=Object.keys(STAMPS).map(cat=>
+    `<button class="stamp-tab${cat===stampTabActive?' active':''}" onclick="switchStampTab('${cat}')">${cat}</button>`
+  ).join('');
+  grid.innerHTML=(STAMPS[stampTabActive]||[]).map(s=>
+    `<button class="stamp-item" onclick="sendStamp('${s.emoji}','${s.label}')">
+      <span class="s-emoji">${s.emoji}</span>
+      <span class="s-label">${s.label}</span>
+    </button>`
+  ).join('');
+}
+function switchStampTab(cat){
+  stampTabActive=cat;
+  renderStampPicker();
+}
+function sendStamp(emoji,label){
+  if(!currentChannel){showToast('チャンネルを選択してください');return;}
+  const key=currentChannel.id;
+  if(!messages[key])messages[key]=[];
+  messages[key].push({userId:currentUser.id,type:'stamp',emoji,label,time:nowTime(),date:'今日'});
+  saveData(); renderMessages();
+  document.getElementById('stampPicker').classList.remove('open');
+}
+document.addEventListener('click',()=>document.getElementById('stampPicker')?.classList.remove('open'));
 function handleFile(e){
   Array.from(e.target.files).forEach(file=>{
     if(file.type.startsWith('image/')){
