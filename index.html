@@ -341,6 +341,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 .bubble.stamp-bubble .stamp-msg .s-emoji{font-size:56px;line-height:1}
 .bubble.stamp-bubble .stamp-msg .s-label{font-size:12px;font-weight:700;color:var(--text-primary)}
 
+/* REACTIONS */
+.reaction-bar{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;min-height:0}
+.r-chip{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;background:#f0f4f8;
+  border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;
+  transition:all .15s;user-select:none;line-height:1}
+.r-chip:hover{border-color:var(--primary);background:var(--primary-light)}
+.r-chip.mine{background:var(--primary-light);border-color:var(--primary)}
+.r-chip .r-cnt{font-size:11px;font-weight:700;color:var(--text-muted);margin-left:1px}
+.r-chip.mine .r-cnt{color:var(--primary)}
+.r-add{background:none;border:1.5px dashed var(--border);border-radius:20px;
+  padding:3px 9px;font-size:12px;cursor:pointer;color:var(--text-muted);
+  opacity:0;transition:all .15s;line-height:1}
+.r-add:hover{border-color:var(--primary);color:var(--primary);opacity:1!important}
+.msg-row:hover .r-add,.reaction-bar:not(:empty) .r-add{opacity:.6}
+#reactionPopup{position:fixed;background:#fff;border:1.5px solid var(--border);border-radius:14px;
+  padding:9px;box-shadow:0 8px 28px rgba(0,0,0,.15);z-index:999;
+  display:none;flex-wrap:wrap;gap:4px;width:228px}
+#reactionPopup.open{display:flex}
+.rp-item{font-size:22px;width:34px;height:34px;display:flex;align-items:center;
+  justify-content:center;border-radius:8px;cursor:pointer;border:none;background:none;
+  transition:all .12s;line-height:1}
+.rp-item:hover{background:var(--primary-light);transform:scale(1.2)}
+/* VOICE INPUT */
+.voice-btn{background:none;border:none;color:var(--text-muted);font-size:19px;
+  cursor:pointer;padding:4px;border-radius:8px;transition:all .15s;line-height:1}
+.voice-btn:hover{color:var(--primary);background:var(--primary-light)}
+.voice-btn.rec{color:#e53935;background:#fde8e8;animation:vblink .8s infinite}
+@keyframes vblink{0%,100%{opacity:1}50%{opacity:.3}}
+
 /* GROUP TAGS */
 .group-tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;margin-left:4px}
 .group-clinic{background:#e3f2fd;color:#1565c0}
@@ -526,6 +555,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
               <button class="stamp-btn" onclick="toggleStampPicker(event)" title="スタンプ">🏷️</button>
               <button class="attach-btn" onclick="triggerAttach()" title="ファイル添付">📎</button>
               <button class="attach-btn" onclick="triggerPhoto()" title="写真">📷</button>
+              <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="音声入力">🎤</button>
               <button class="send-btn" onclick="sendMessage()">➤</button>
             </div>
           </div>
@@ -1199,7 +1229,8 @@ function renderMessages(){
   }
   container.innerHTML='';
   let prevUId=null,prevDate=null;
-  msgs.forEach(msg=>{
+  msgs.forEach((msg,msgIdx)=>{
+    if(!msg.id) msg.id='m'+msgIdx+'_'+(msg.time||'').replace(':','');
     const isOwn=msg.userId===currentUser.id;
     const user=getUser(msg.userId)||{name:'不明',id:0,role:''};
     if(msg.date!==prevDate){
@@ -1216,7 +1247,13 @@ function renderMessages(){
     else if(msg.type==='stamp'){ bContent=`<div class="stamp-msg"><div class="s-emoji">${msg.emoji}</div><div class="s-label">${escHtml(msg.label)}</div></div>`; bubbleClass='bubble stamp-bubble'; }
     else bContent=escHtml(msg.text);
     const senderHtml=(!isOwn&&showAv)?`<div class="msg-sender">${escHtml(user.name)} · ${ROLE_LABELS[user.role]||''}</div>`:'';
-    row.innerHTML=`${avHtml}<div class="msg-content">${senderHtml}<div class="${bubbleClass}">${bContent}</div><div class="msg-meta"><span>${msg.time}</span>${isOwn?'<span class="read-indicator">✓✓</span>':''}</div></div>`;
+    const reacs=msg.reactions||{};
+    const chips=Object.entries(reacs).filter(([,u])=>u.length>0).map(([em,u])=>{
+      const mine=u.includes(currentUser.id);
+      return `<span class="r-chip${mine?' mine':''}" onclick="toggleReaction('${key}','${msg.id}','${em}')">${em}<span class="r-cnt">${u.length}</span></span>`;
+    }).join('');
+    const reactionBar=`<div class="reaction-bar">${chips}<button class="r-add" onclick="openReactionPicker(event,'${key}','${msg.id}')">＋😊</button></div>`;
+    row.innerHTML=`${avHtml}<div class="msg-content">${senderHtml}<div class="${bubbleClass}">${bContent}</div>${reactionBar}<div class="msg-meta"><span>${msg.time}</span>${isOwn?'<span class="read-indicator">✓✓</span>':''}</div></div>`;
     container.appendChild(row); prevUId=msg.userId;
   });
   container.scrollTop=container.scrollHeight;
@@ -1231,12 +1268,65 @@ function sendMessage(){
   const text=input.value.trim();
   const key=currentChannel.id;
   if(!messages[key])messages[key]=[];
-  if(pendingFiles.length>0){ pendingFiles.forEach(f=>messages[key].push({userId:currentUser.id,time:nowTime(),date:'今日',...f})); pendingFiles=[]; }
-  if(text){ messages[key].push({userId:currentUser.id,text,time:nowTime(),date:'今日'}); input.value=''; input.style.height='auto'; }
+  const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  if(pendingFiles.length>0){ pendingFiles.forEach(f=>messages[key].push({id:newId(),userId:currentUser.id,time:nowTime(),date:'今日',...f})); pendingFiles=[]; }
+  if(text){ messages[key].push({id:newId(),userId:currentUser.id,text,time:nowTime(),date:'今日'}); input.value=''; input.style.height='auto'; }
   saveData(); renderMessages();
 }
 function triggerAttach(){ document.getElementById('fileInput').click(); }
 function triggerPhoto(){ document.getElementById('photoInput').click(); }
+
+// ===== REACTIONS =====
+const REACTION_EMOJIS=['👍','✅','😊','🙏','❤️','😂','🔥','💪','👋','☀️','🌟','🚨','🎉','💯','😢','👀'];
+function openReactionPicker(e,channelKey,msgId){
+  e.stopPropagation();
+  const popup=document.getElementById('reactionPopup');
+  popup.innerHTML=REACTION_EMOJIS.map(em=>
+    `<button class="rp-item" onclick="toggleReaction('${channelKey}','${msgId}','${em}')">${em}</button>`
+  ).join('');
+  const rect=e.currentTarget.getBoundingClientRect();
+  const ph=160;
+  const top=rect.top-ph>10?rect.top-ph:rect.bottom+5;
+  popup.style.left=Math.max(5,Math.min(rect.left-20,window.innerWidth-240))+'px';
+  popup.style.top=top+'px';
+  popup.classList.add('open');
+}
+function closeReactionPicker(){ document.getElementById('reactionPopup')?.classList.remove('open'); }
+function toggleReaction(channelKey,msgId,emoji){
+  const msgs=messages[channelKey]||[];
+  const msg=msgs.find(m=>m.id===msgId);
+  if(!msg)return;
+  if(!msg.reactions)msg.reactions={};
+  if(!msg.reactions[emoji])msg.reactions[emoji]=[];
+  const i=msg.reactions[emoji].indexOf(currentUser.id);
+  if(i>=0){ msg.reactions[emoji].splice(i,1); if(!msg.reactions[emoji].length)delete msg.reactions[emoji]; }
+  else{ msg.reactions[emoji].push(currentUser.id); }
+  saveData(); closeReactionPicker(); renderMessages();
+}
+document.addEventListener('click',function(e){
+  const p=document.getElementById('reactionPopup');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target))closeReactionPicker();
+});
+
+// ===== VOICE INPUT =====
+let voiceRec=null,voiceActive=false;
+function toggleVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showToast('このブラウザは音声入力に対応していません');return;}
+  if(voiceActive){voiceRec&&voiceRec.stop();return;}
+  voiceRec=new SR();
+  voiceRec.lang='ja-JP'; voiceRec.continuous=true; voiceRec.interimResults=false;
+  voiceRec.onstart=()=>{voiceActive=true;document.getElementById('voiceBtn').classList.add('rec');showToast('🎤 音声入力中… もう一度押すと終了');};
+  voiceRec.onresult=e=>{
+    const input=document.getElementById('msgInput');
+    let final='';
+    for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal)final+=e.results[i][0].transcript;
+    if(final){input.value=(input.value?input.value+' ':'')+final;autoResize(input);}
+  };
+  voiceRec.onend=()=>{voiceActive=false;document.getElementById('voiceBtn')?.classList.remove('rec');};
+  voiceRec.onerror=ev=>{voiceActive=false;document.getElementById('voiceBtn')?.classList.remove('rec');if(ev.error!=='aborted')showToast('音声認識エラー: '+ev.error);};
+  voiceRec.start();
+}
 
 // ===== STAMPS =====
 const STAMPS = {
@@ -2244,5 +2334,6 @@ document.getElementById('loginPassword').addEventListener('keydown',e=>{ if(e.ke
   }catch(e){}
 })();
 </script>
+<div id="reactionPopup"></div>
 </body>
 </html>
