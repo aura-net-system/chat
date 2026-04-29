@@ -372,8 +372,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
   </div>
   <div class="nav-tabs">
     <div class="nav-tab active" onclick="showHome()">💬 チャット</div>
-    <a class="nav-tab" href="shift.html">📅 シフト</a>
-    <a class="nav-tab" href="ai-faq.html">✨ AI FAQ</a>
+    <a class="nav-tab" href="002_シフト閲覧.html">📅 シフト</a>
+    <a class="nav-tab" href="003_AI_FAQ.html">✨ AI FAQ</a>
   </div>
   <div class="nav-right">
     <div class="user-pill" id="userPill" style="display:none">
@@ -450,11 +450,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
         </div>
         <div class="sidebar-section">
           <div class="sidebar-section-title">ツール</div>
-          <a class="channel-item" href="shift.html" style="text-decoration:none">
+          <a class="channel-item" href="002_シフト閲覧.html" style="text-decoration:none">
             <span class="ch-icon">📅</span>
             <span class="ch-name">シフト閲覧</span>
           </a>
-          <a class="channel-item" href="ai-faq.html" style="text-decoration:none">
+          <a class="channel-item" href="003_AI_FAQ.html" style="text-decoration:none">
             <span class="ch-icon">✨</span>
             <span class="ch-name">AI FAQ</span>
           </a>
@@ -501,7 +501,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
           <div class="chat-header-desc" id="chatChannelDesc">チャンネルまたはメンバーを選択してください</div>
         </div>
         <div class="chat-header-actions">
-          <a href="ai-faq.html" class="icon-btn" title="AI FAQ" style="text-decoration:none;display:flex;align-items:center;justify-content:center">✨</a>
+          <a href="003_AI_FAQ.html" class="icon-btn" title="AI FAQ" style="text-decoration:none;display:flex;align-items:center;justify-content:center">✨</a>
         </div>
       </div>
 
@@ -691,31 +691,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
         </div>
         <div style="margin-bottom:12px">
           <select id="manualCatFilter" onchange="renderManualList()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;width:100%">
-            <option value="">── カテゴリで絞り込み ──</option>
-            <optgroup label="全体">
-              <option>全職員共通</option>
-              <option value="__医院全体__">🏥 医院全体</option>
-              <option value="__施設全体__">🏠 施設全体</option>
-            </optgroup>
-            <optgroup label="職種別">
-              <option>医師</option>
-              <option>医院看護師</option>
-              <option>医院事務</option>
-              <option>施設看護師</option>
-              <option>介護職員（サ高住）</option>
-              <option>介護職員（小多機）</option>
-              <option>訪問介護職員</option>
-              <option>デイサービス職員</option>
-              <option>居宅介護支援員</option>
-              <option>管理職・理事会</option>
-            </optgroup>
+            <option value="">── 書類カテゴリで絞り込み ──</option>
+            <option>感染・衛生管理</option>
+            <option>緊急・事故対応</option>
+            <option>介護・ケア手順</option>
+            <option>医療・服薬管理</option>
+            <option>記録・書類作成</option>
+            <option>個人情報・コンプライアンス</option>
+            <option>人事・勤怠・研修</option>
+            <option>設備・環境管理</option>
+            <option>運営・経営</option>
+            <option>その他</option>
           </select>
         </div>
         <!-- Add Form -->
         <div id="addManualForm" style="display:none;padding:16px;background:var(--chat-bg);border-radius:12px;margin-bottom:14px">
           <div class="form-group"><label>マニュアル名 *</label><input type="text" id="manualName" placeholder="感染対策マニュアル"></div>
           <div class="form-group">
-            <label>カテゴリ（複数選択可）</label>
+            <label>📂 書類カテゴリ（複数選択可）</label>
             <div class="role-checks" id="manualCategoryChecks" style="gap:6px;flex-wrap:wrap"></div>
           </div>
           <div class="form-group">
@@ -733,8 +726,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
             <textarea id="manualContent" rows="6" placeholder="ファイルをアップロードすると自動で読み取ります。手動でも入力できます。"></textarea>
           </div>
           <div class="form-group">
-            <label>📋 参照できる権限（複数選択）</label>
-            <div class="role-checks" id="manualRoleChecks"></div>
+            <label>👥 参照できる職種グループ（複数選択）</label>
+            <div class="role-checks" id="manualRoleChecks" style="gap:6px;flex-wrap:wrap"></div>
           </div>
           <div style="display:flex;gap:8px;margin-top:4px">
             <button class="btn btn-success btn-sm" onclick="saveManual()">保存</button>
@@ -1418,9 +1411,21 @@ async function processManualFile(file){
     else if(ext==='docx'||ext==='doc') text=await extractDOCX(file);
     else{showToast('PDF または Word(.docx)ファイルを選択してください');return;}
     document.getElementById('manualContent').value=text;
-    document.getElementById('uploadFileName').textContent='✅ 読み取り完了：'+name;
     if(!document.getElementById('manualName').value) document.getElementById('manualName').value=name.replace(/\.(pdf|docx|doc)$/i,'');
-    showToast('ファイルの内容を読み取りました');
+    document.getElementById('uploadFileName').textContent='🤖 AIがカテゴリを判定中...';
+    const suggested=await autoSuggestDocCategory(text);
+    if(suggested.length>0){
+      document.querySelectorAll('#manualCategoryChecks input[type=checkbox]').forEach(cb=>cb.checked=false);
+      suggested.forEach(cat=>{
+        const cb=document.querySelector(`#manualCategoryChecks input[value="${CSS.escape(cat)}"]`);
+        if(cb)cb.checked=true;
+      });
+      document.getElementById('uploadFileName').textContent=`✅ 読み取り完了：${name}（カテゴリ自動設定）`;
+      showToast(`📂 カテゴリを自動設定：${suggested.join('、')}`);
+    }else{
+      document.getElementById('uploadFileName').textContent='✅ 読み取り完了：'+name;
+      showToast('ファイルの内容を読み取りました');
+    }
   }catch(e){
     document.getElementById('uploadFileName').textContent='⚠️ 読み取りエラー：'+e.message;
     showToast('読み取りに失敗しました。手動で入力してください。');
@@ -1704,7 +1709,7 @@ function downloadCsvTemplate(){
 // ===== ADMIN =====
 function openAdmin(){
   if(currentUser.role!=='admin')return;
-  renderUserTable(); renderManualList(); renderAdminSurveyList(); buildRoleChecks('manualRoleChecks',true); buildRoleChecks('sqRoleChecks',true);
+  renderUserTable(); renderManualList(); renderAdminSurveyList(); buildJobGroupChecks('manualRoleChecks'); buildRoleChecks('sqRoleChecks',true);
   document.getElementById('adminModal').classList.add('open'); switchTab('users');
 }
 function closeAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
@@ -1823,44 +1828,94 @@ function addUser(){
 }
 
 // MANUALS
-const MANUAL_CATEGORIES = ['全職員共通','医院全体','施設全体','医師','医院看護師','医院事務','施設看護師','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員','管理職・理事会'];
-const CAT_GROUP_医院 = ['医院全体','医師','医院看護師','医院事務','居宅介護支援員'];
-const CAT_GROUP_施設 = ['施設全体','医師','施設看護師','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員'];
+const DOC_CATEGORIES = ['感染・衛生管理','緊急・事故対応','介護・ケア手順','医療・服薬管理','記録・書類作成','個人情報・コンプライアンス','人事・勤怠・研修','設備・環境管理','運営・経営','その他'];
+const JOB_GROUP_TO_ROLES = {
+  '全職員共通':'all',
+  '医院全体':['admin','doctor','nurse-clinic','office-clinic','kyotaku','manager'],
+  '施設全体':['admin','doctor','nurse-facility','care-sako','care-kotaki','care-houmon','care-day','kyotaku','manager'],
+  '医師':['doctor'],
+  '医院看護師':['nurse-clinic'],
+  '医院事務':['office-clinic'],
+  '施設看護師':['nurse-facility'],
+  '介護職員（サ高住）':['care-sako'],
+  '介護職員（小多機）':['care-kotaki'],
+  '訪問介護職員':['care-houmon'],
+  'デイサービス職員':['care-day'],
+  '居宅介護支援員':['kyotaku'],
+  '管理職・理事会':['admin','manager','board'],
+};
 function toggleAddManual(){
   const f=document.getElementById('addManualForm');
   const open=f.style.display==='none'||!f.style.display;
   f.style.display=open?'block':'none';
   if(open){
     const box=document.getElementById('manualCategoryChecks'); box.innerHTML='';
-    const groups=[
-      {label:'全体', cats:['全職員共通','医院全体','施設全体']},
-      {label:'医院', cats:['医師','医院看護師','医院事務']},
-      {label:'施設', cats:['施設看護師','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員']},
-      {label:'管理', cats:['管理職・理事会']},
-    ];
-    groups.forEach(g=>{
-      box.insertAdjacentHTML('beforeend',`<div style="width:100%;font-size:10px;font-weight:800;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase;margin-top:6px;margin-bottom:2px">${g.label}</div>`);
-      g.cats.forEach(cat=>{
-        box.insertAdjacentHTML('beforeend',
-          `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fff;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
-            <input type="checkbox" value="${cat}" style="accent-color:var(--primary)">${cat}</label>`);
-      });
+    DOC_CATEGORIES.forEach(cat=>{
+      box.insertAdjacentHTML('beforeend',
+        `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fff;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
+          <input type="checkbox" value="${cat}" style="accent-color:var(--primary)">${cat}</label>`);
     });
+    buildJobGroupChecks('manualRoleChecks');
   }
+}
+function buildJobGroupChecks(containerId){
+  const el=document.getElementById(containerId); if(!el)return; el.innerHTML='';
+  const groups=[
+    {label:'全体',items:['全職員共通','医院全体','施設全体']},
+    {label:'医院',items:['医師','医院看護師','医院事務']},
+    {label:'施設',items:['施設看護師','介護職員（サ高住）','介護職員（小多機）','訪問介護職員','デイサービス職員','居宅介護支援員']},
+    {label:'管理',items:['管理職・理事会']},
+  ];
+  groups.forEach(g=>{
+    el.insertAdjacentHTML('beforeend',`<div style="width:100%;font-size:10px;font-weight:800;color:var(--text-muted);letter-spacing:.8px;margin-top:6px;margin-bottom:2px">${g.label}</div>`);
+    g.items.forEach(item=>{
+      el.insertAdjacentHTML('beforeend',
+        `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:#fff;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
+          <input type="checkbox" value="${item}" style="accent-color:var(--primary)" onchange="handleJobGroupCheck(this,'${containerId}')">${item}</label>`);
+    });
+  });
+}
+function handleJobGroupCheck(cb,containerId){
+  if(cb.value==='全職員共通'){
+    const el=document.getElementById(containerId);
+    el.querySelectorAll('input[type=checkbox]:not([value="全職員共通"])').forEach(c=>{c.checked=cb.checked;c.disabled=cb.checked;});
+  }
+}
+function getJobGroupRoles(containerId){
+  const el=document.getElementById(containerId); if(!el)return[];
+  const allCb=el.querySelector('input[value="全職員共通"]');
+  if(allCb&&allCb.checked)return['all'];
+  const checked=[...el.querySelectorAll('input:checked')].map(c=>c.value);
+  const roles=new Set();
+  checked.forEach(g=>{const r=JOB_GROUP_TO_ROLES[g];if(Array.isArray(r))r.forEach(x=>roles.add(x));else if(r&&r!=='all')roles.add(r);});
+  return Array.from(roles);
+}
+async function autoSuggestDocCategory(text){
+  const catList=DOC_CATEGORIES.join('、');
+  const prompt=`以下の書類テキストを分析し、最も適切なカテゴリを選んでください。\nカテゴリ一覧：${catList}\n\n複数選択可。該当するカテゴリ名のみをカンマ区切りで返してください。説明は一切不要です。\n\n書類内容（先頭600文字）:\n${text.slice(0,600)}`;
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',
+      {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},
+       body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:80,temperature:0.1})});
+    const data=await res.json();
+    const ans=data.choices?.[0]?.message?.content||'';
+    return ans.split(/[,、，\n]/).map(s=>s.trim()).filter(s=>DOC_CATEGORIES.includes(s));
+  }catch(e){return[];}
 }
 function renderManualList(){
   const filter=document.getElementById('manualCatFilter')?.value||'';
   const list=document.getElementById('manualList');
   const filtered=filter?manuals.filter(m=>{
     const cats=Array.isArray(m.category)?m.category:[m.category];
-    if(filter==='__医院全体__') return cats.some(c=>CAT_GROUP_医院.includes(c)||c==='全職員共通');
-    if(filter==='__施設全体__') return cats.some(c=>CAT_GROUP_施設.includes(c)||c==='全職員共通');
     return cats.includes(filter);
   }):manuals;
   list.innerHTML=filtered.map(m=>{
     const cats=Array.isArray(m.category)?m.category:[m.category];
-    const catTags=cats.map(c=>`<span style="display:inline-block;padding:2px 8px;background:var(--primary-light);color:var(--primary);border-radius:20px;font-size:11px;font-weight:700;margin-right:3px">${c}</span>`).join('');
-    const roleDisplay=m.roles.includes('all')?'<span class="role-chip">全員</span>':m.roles.map(r=>`<span class="role-chip">${ROLE_LABELS[r]||r}</span>`).join('');
+    const catTags=cats.length?cats.map(c=>`<span style="display:inline-block;padding:2px 8px;background:var(--primary-light);color:var(--primary);border-radius:20px;font-size:11px;font-weight:700;margin-right:3px">${c}</span>`).join(''):'<span style="font-size:11px;color:var(--text-muted)">未分類</span>';
+    const jobGroups=m.jobGroupLabels||(m.roles.includes('all')?['全職員共通']:null);
+    const roleDisplay=jobGroups
+      ?jobGroups.map(g=>`<span class="role-chip">${g}</span>`).join('')
+      :m.roles.map(r=>`<span class="role-chip">${ROLE_LABELS[r]||r}</span>`).join('');
     return `<div class="manual-item">
       <div class="m-icon">${m.icon||'📄'}</div>
       <div class="m-info">
@@ -1877,11 +1932,12 @@ function saveManual(){
   const name=document.getElementById('manualName').value.trim();
   const cats=[...document.querySelectorAll('#manualCategoryChecks input:checked')].map(el=>el.value);
   const content=document.getElementById('manualContent').value.trim();
-  const roles=getCheckedRoles('manualRoleChecks');
+  const checkedGroups=[...document.querySelectorAll('#manualRoleChecks input:checked')].map(el=>el.value);
+  const roles=getJobGroupRoles('manualRoleChecks');
   if(!name)return showToast('マニュアル名を入力してください');
   if(!content)return showToast('内容を入力してください');
-  if(roles.length===0)return showToast('参照権限を選択してください');
-  manuals.push({id:Date.now(),name,category:cats,date:new Date().toISOString().slice(0,10),icon:'📄',roles,content});
+  if(checkedGroups.length===0)return showToast('参照できる職種グループを選択してください');
+  manuals.push({id:Date.now(),name,category:cats,date:new Date().toISOString().slice(0,10),icon:'📄',roles,jobGroupLabels:checkedGroups,content});
   saveData();renderManualList();
   document.getElementById('addManualForm').style.display='none';
   ['manualName','manualContent'].forEach(id=>document.getElementById(id).value='');
