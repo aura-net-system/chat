@@ -992,7 +992,7 @@ const AVATAR_COLORS = ['#2e7d5e','#c62828','#1565c0','#6a1b9a','#e65100','#00695
 
 // ===== STATE =====
 // バージョンが変わったらlocalStorageをリセット（ドメイン変更等に対応）
-const DATA_VERSION = 'v4';
+const DATA_VERSION = 'v5';
 if(localStorage.getItem('vs_version') !== DATA_VERSION){
   ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
   localStorage.setItem('vs_version', DATA_VERSION);
@@ -1118,7 +1118,7 @@ function selectChannel(chId){
   if(ch.group==='facility')desc+=' <span class="group-tag group-facility">施設グループ</span>';
   if(ch.group==='mgmt')   desc+=' <span class="group-tag group-mgmt">管理職グループ</span>';
   document.getElementById('chatChannelDesc').innerHTML=desc;
-  document.getElementById('mobileTitle').textContent=ch.name;
+  const mt=document.getElementById('mobileTitle'); if(mt)mt.textContent=ch.name;
   showChatView(); renderMessages(); closeSidebar();
 }
 function selectDM(targetId){
@@ -1129,7 +1129,7 @@ function selectDM(targetId){
   document.getElementById('chatChannelIcon').textContent='💬';
   document.getElementById('chatChannelName').textContent=target.name;
   document.getElementById('chatChannelDesc').innerHTML=`<span class="dm-header-badge"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block"></span> DM ・ ${ROLE_LABELS[target.role]}</span>`;
-  document.getElementById('mobileTitle').textContent=target.name;
+  const mt2=document.getElementById('mobileTitle'); if(mt2)mt2.textContent=target.name;
   showChatView(); renderMessages(); closeSidebar();
 }
 function showChatView(){
@@ -1253,8 +1253,8 @@ const FALLBACK_KB = {
 
 async function askBot(q){
   if(!q||!q.trim())return;
-  document.getElementById('botInput').value='';
-  const bm=document.getElementById('botMessages');
+  const bi=document.getElementById('botInput'); if(bi)bi.value='';
+  const bm=document.getElementById('botMessages'); if(!bm)return;
   const qDiv=document.createElement('div'); qDiv.className='bot-msg user-q'; qDiv.textContent=q; bm.appendChild(qDiv);
   const typing=document.createElement('div'); typing.className='bot-msg bot-a';
   typing.innerHTML='<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
