@@ -362,7 +362,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
   <div class="mobile-header">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <span class="mobile-title" id="mobileTitle">AURA NET</span>
-    <button class="icon-btn" onclick="toggleBot()" style="color:rgba(255,255,255,.7);margin-left:auto;">✨</button>
   </div>
 
   <div class="app-layout">
@@ -388,6 +387,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
           <a class="channel-item" href="shift.html" style="text-decoration:none">
             <span class="ch-icon">📅</span>
             <span class="ch-name">シフト閲覧</span>
+          </a>
+          <a class="channel-item" href="ai-faq.html" style="text-decoration:none">
+            <span class="ch-icon">✨</span>
+            <span class="ch-name">AI FAQ</span>
           </a>
         </div>
         <div class="sidebar-section">
@@ -416,7 +419,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
           </div>
         </div>
         <div class="sidebar-actions">
-          <button class="sidebar-action-btn" onclick="toggleBot()">✨ AI</button>
           <button class="sidebar-action-btn" id="adminBtn" onclick="openAdmin()" style="display:none">⚙️ 管理</button>
           <button class="sidebar-action-btn" onclick="openChangePw()">🔑 PW変更</button>
           <button class="sidebar-action-btn" onclick="doLogout()">↩️ 退出</button>
@@ -433,7 +435,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
           <div class="chat-header-desc" id="chatChannelDesc">チャンネルまたはメンバーを選択してください</div>
         </div>
         <div class="chat-header-actions">
-          <button class="icon-btn" onclick="toggleBot()" title="AI">✨</button>
+          <a href="ai-faq.html" class="icon-btn" title="AI FAQ" style="text-decoration:none;display:flex;align-items:center;justify-content:center">✨</a>
         </div>
       </div>
 
@@ -471,36 +473,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
     </div>
 
     <!-- BOT PANEL -->
-    <div class="bot-panel hidden" id="botPanel">
-      <div class="bot-header">
-        <h3>✨ AURA NET AI</h3>
-        <p>Gemini × 法人マニュアルで回答</p>
-      </div>
-      <div class="bot-key-bar" id="botKeyBar">
-        <span style="font-size:11px;color:#666;white-space:nowrap">Gemini Key</span>
-        <input type="password" id="geminiKeyInput" placeholder="AIzaSy...">
-        <button onclick="saveGeminiKey()">設定</button>
-      </div>
-      <div class="bot-messages" id="botMessages">
-        <div class="bot-msg bot-a">
-          <div class="bot-label">✨ AURA NET AI</div>
-          こんにちは！法人マニュアルや業務手順についてご質問ください。Gemini APIキーを設定するとより詳細な回答が可能です。
-        </div>
-      </div>
-      <div class="bot-suggestions">
-        <p>よくある質問：</p>
-        <span class="suggestion-chip" onclick="askBot('感染対策の手順を教えてください')">感染対策</span>
-        <span class="suggestion-chip" onclick="askBot('緊急時の対応手順は？')">緊急時対応</span>
-        <span class="suggestion-chip" onclick="askBot('介護記録の書き方')">介護記録</span>
-        <span class="suggestion-chip" onclick="askBot('ヒヤリハットの報告方法は？')">ヒヤリハット</span>
-        <span class="suggestion-chip" onclick="askBot('有給休暇の申請方法')">休暇申請</span>
-      </div>
-      <div class="bot-input-area">
-        <input class="bot-input" id="botInput" type="text" placeholder="質問を入力…"
-          onkeydown="if(event.key==='Enter')askBot(this.value)">
-        <button class="bot-send" onclick="askBot(document.getElementById('botInput').value)">➤</button>
-      </div>
-    </div>
   </div>
 </div>
 
