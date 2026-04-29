@@ -500,7 +500,7 @@ function sendMsg(){
 }
 
 function handleKey(e){
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
+  if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMsg();}
 }
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
 
