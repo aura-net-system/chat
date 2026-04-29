@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>AURA NET - AI FAQ</title>
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --primary:#2e7d5e;--primary-dark:#1b5e42;--primary-light:#e8f5f0;
+  --sidebar-bg:#1a2332;--chat-bg:#f4f6f9;--border:#e4e9f0;
+  --text-primary:#1a1f2e;--text-muted:#8892a4;
+  --danger:#e53935;--success:#43a047;--bot-bg:#f0f7f4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+  background:var(--chat-bg);color:var(--text-primary);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ===LOGIN=== */
+#loginScreen{display:flex;align-items:center;justify-content:center;
+  height:100dvh;background:linear-gradient(135deg,#1a2332 0%,#2e7d5e 100%);padding:20px}
+.login-card{background:#fff;border-radius:20px;padding:36px;width:100%;max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-logo .icon{font-size:44px}
+.login-logo h1{font-size:24px;font-weight:800;color:var(--primary);margin-top:6px}
+.login-logo p{color:#888;font-size:11px;margin-top:3px;letter-spacing:1px}
+.form-group{margin-bottom:15px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px}
+.form-group input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none}
+.form-group input:focus{border-color:var(--primary)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:10px 18px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff;width:100%}
+.btn-primary:hover{background:var(--primary-dark)}
+.error-msg{color:var(--danger);font-size:13px;text-align:center;margin-top:8px}
+
+/* ===TOP NAV=== */
+.top-nav{
+  display:flex;align-items:center;
+  background:var(--sidebar-bg);flex-shrink:0;
+  border-bottom:2px solid rgba(255,255,255,.07);
+}
+.top-nav-logo{
+  display:flex;align-items:center;gap:9px;padding:12px 18px;
+  color:#fff;text-decoration:none;border-right:1px solid rgba(255,255,255,.1);
+}
+.top-nav-logo span{font-size:15px;font-weight:800}
+.top-nav-logo .sq{color:#6ec9a8}
+.nav-tabs{display:flex;flex:1;overflow-x:auto}
+.nav-tab{
+  display:flex;align-items:center;gap:7px;padding:14px 20px;
+  color:rgba(255,255,255,.55);font-size:13px;font-weight:600;
+  cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;
+  transition:all .15s;text-decoration:none;
+}
+.nav-tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05)}
+.nav-tab.active{color:#fff;border-bottom-color:#6ec9a8;background:rgba(110,201,168,.12)}
+.nav-right{display:flex;align-items:center;gap:8px;padding:0 16px;margin-left:auto;flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:8px;padding:5px 12px;
+  background:rgba(255,255,255,.08);border-radius:20px}
+.user-pill .u-name{color:#fff;font-size:13px;font-weight:600}
+.user-pill .u-role{color:rgba(255,255,255,.5);font-size:11px}
+.avatar-sm{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.logout-btn{background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.6);
+  padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .15s}
+.logout-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+
+/* ===APP=== */
+#app{display:none;flex:1;flex-direction:column;overflow:hidden}
+
+/* ===MAIN=== */
+.faq-main{flex:1;display:flex;overflow:hidden;gap:0}
+
+/* ===SIDEBAR=== */
+.faq-sidebar{
+  width:220px;background:#fff;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;
+}
+.sidebar-section{padding:14px 14px 8px}
+.sidebar-section-title{font-size:10px;font-weight:800;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+
+/* FAQ chips */
+.faq-category{margin-bottom:14px}
+.faq-category-label{font-size:11px;font-weight:700;color:#555;margin-bottom:6px;padding-left:2px}
+.faq-chip{
+  display:block;width:100%;text-align:left;padding:8px 11px;margin-bottom:4px;
+  border:1.5px solid var(--border);border-radius:10px;cursor:pointer;
+  font-size:12px;color:var(--text-primary);background:#fafafa;
+  transition:all .15s;font-family:inherit;
+}
+.faq-chip:hover{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+
+/* API key bar */
+.key-bar{
+  padding:10px 14px;background:#fff8e1;border-top:1px solid #ffe082;
+  display:flex;gap:7px;align-items:center;flex-shrink:0;
+}
+.key-bar.hidden{display:none}
+.key-bar input{flex:1;padding:6px 10px;border:1.5px solid #ffe082;border-radius:8px;font-size:12px;outline:none}
+.key-bar button{padding:6px 13px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap}
+.key-bar-note{font-size:11px;color:#888;margin-top:4px;padding:0 14px 8px;background:#fff8e1;border-top:none}
+
+/* ===CHAT AREA=== */
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.chat-header-ai{
+  padding:14px 20px;background:linear-gradient(135deg,#1a2332,var(--primary));
+  color:#fff;flex-shrink:0;display:flex;align-items:center;gap:12px;
+}
+.chat-header-ai .ai-icon{font-size:28px}
+.chat-header-ai h2{font-size:16px;font-weight:700}
+.chat-header-ai p{font-size:12px;opacity:.8;margin-top:2px}
+.ai-status{display:flex;align-items:center;gap:6px;padding:3px 10px;
+  background:rgba(255,255,255,.12);border-radius:20px;font-size:11px;margin-left:auto}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:#6ec9a8;flex-shrink:0}
+.ai-dot.gemini{animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;background:var(--bot-bg)}
+
+.msg-row{display:flex;gap:10px;align-items:flex-start}
+.msg-row.user-row{flex-direction:row-reverse}
+.msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.msg-bubble{max-width:78%;padding:11px 14px;border-radius:16px;font-size:13px;line-height:1.6;word-break:break-word}
+.msg-row.user-row .msg-bubble{background:var(--primary);color:#fff;border-top-right-radius:4px}
+.msg-row.ai-row .msg-bubble{background:#fff;color:var(--text-primary);border-top-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.msg-label{font-size:10px;font-weight:700;color:var(--primary);margin-bottom:5px}
+.msg-time{font-size:10px;color:rgba(255,255,255,.5);margin-top:4px;text-align:right}
+.msg-row.ai-row .msg-time{color:var(--text-muted)}
+
+.typing-indicator{display:flex;gap:4px;align-items:center;padding:2px 0}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);
+  animation:typing .8s infinite;opacity:.5}
+.typing-dot:nth-child(2){animation-delay:.15s}
+.typing-dot:nth-child(3){animation-delay:.3s}
+@keyframes typing{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px);opacity:1}}
+
+.input-area{padding:12px 16px;border-top:1px solid var(--border);background:#fff;flex-shrink:0;display:flex;gap:9px;align-items:flex-end}
+.msg-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:22px;
+  font-size:14px;outline:none;font-family:inherit;resize:none;max-height:100px;line-height:1.5}
+.msg-input:focus{border-color:var(--primary)}
+.send-btn{width:40px;height:40px;border-radius:50%;background:var(--primary);border:none;
+  color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;transition:all .2s}
+.send-btn:hover{background:var(--primary-dark)}
+.send-btn:disabled{background:#ccc;cursor:not-allowed}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1a2332;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;
+  opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:700px){
+  .faq-sidebar{display:none}
+  .chat-header-ai p{display:none}
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:#c5cdd6;border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">✨</div>
+      <h1>AURA <span style="color:#6ec9a8">NET</span></h1>
+      <p>AI FAQ</p>
+    </div>
+    <div class="form-group">
+      <label>メールアドレス</label>
+      <input type="email" id="loginEmail" placeholder="example@aura-net.jp">
+    </div>
+    <div class="form-group">
+      <label>パスワード</label>
+      <input type="password" id="loginPassword" placeholder="パスワードを入力">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">ログイン</button>
+    <div id="loginError" class="error-msg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOP NAV -->
+  <div class="top-nav">
+    <a class="top-nav-logo" href="index.html">
+      <span style="font-size:20px">🏘️</span>
+      <span>AURA <span class="sq">NET</span></span>
+    </a>
+    <div class="nav-tabs">
+      <a class="nav-tab" href="index.html">💬 チャット</a>
+      <a class="nav-tab" href="shift.html">📅 シフト</a>
+      <div class="nav-tab active">✨ AI FAQ</div>
+    </div>
+    <div class="nav-right">
+      <div class="user-pill">
+        <div class="avatar-sm" id="navAvatar"></div>
+        <div>
+          <div class="u-name" id="navName">---</div>
+          <div class="u-role" id="navRole">---</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">↩️ 退出</button>
+    </div>
+  </div>
+
+  <!-- KEY BAR -->
+  <div class="key-bar" id="keyBar">
+    <span style="font-size:12px;color:#666;white-space:nowrap">🔑 Gemini API キー</span>
+    <input type="password" id="keyInput" placeholder="AIzaSy...">
+    <button onclick="saveKey()">設定する</button>
+  </div>
+
+  <div class="faq-main">
+    <!-- SIDEBAR -->
+    <div class="faq-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">よくある質問</div>
+
+        <div class="faq-category">
+          <div class="faq-category-label">🏥 医療・ケア</div>
+          <button class="faq-chip" onclick="ask('感染対策の手順を教えてください')">感染対策の手順</button>
+          <button class="faq-chip" onclick="ask('緊急時の対応手順は？')">緊急時の対応</button>
+          <button class="faq-chip" onclick="ask('服薬介助の注意点を教えてください')">服薬介助の注意点</button>
+          <button class="faq-chip" onclick="ask('バイタル測定の手順を教えてください')">バイタル測定</button>
+        </div>
+
+        <div class="faq-category">
+          <div class="faq-category-label">📝 記録・書類</div>
+          <button class="faq-chip" onclick="ask('介護記録の書き方を教えてください')">介護記録の書き方</button>
+          <button class="faq-chip" onclick="ask('ヒヤリハットの報告方法は？')">ヒヤリハット報告</button>
+          <button class="faq-chip" onclick="ask('事故報告書の書き方は？')">事故報告書</button>
+        </div>
+
+        <div class="faq-category">
+          <div class="faq-category-label">👔 勤怠・総務</div>
+          <button class="faq-chip" onclick="ask('有給休暇の申請方法を教えてください')">有給申請方法</button>
+          <button class="faq-chip" onclick="ask('時間外勤務の申請手順は？')">時間外申請</button>
+          <button class="faq-chip" onclick="ask('研修・勉強会の案内はどこで確認できますか？')">研修・勉強会</button>
+        </div>
+
+        <div class="faq-category">
+          <div class="faq-category-label">🛡️ コンプライアンス</div>
+          <button class="faq-chip" onclick="ask('個人情報の取り扱い方針を教えてください')">個人情報の取扱い</button>
+          <button class="faq-chip" onclick="ask('ハラスメント相談窓口はどこですか？')">ハラスメント相談</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="chat-area">
+      <div class="chat-header-ai">
+        <div class="ai-icon">✨</div>
+        <div>
+          <h2>AURA NET AI</h2>
+          <p>法人マニュアル参照・業務Q&A</p>
+        </div>
+        <div class="ai-status" id="aiStatus">
+          <div class="ai-dot" id="aiDot"></div>
+          <span id="aiStatusText">スタンバイ</span>
+        </div>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="msg-row ai-row">
+          <div class="msg-avatar" style="background:var(--primary);font-size:16px">✨</div>
+          <div class="msg-bubble">
+            <div class="msg-label">AURA NET AI</div>
+            こんにちは！業務に関するご質問にお答えします。<br><br>
+            左のメニューからよくある質問を選ぶか、下のテキストボックスに直接質問を入力してください。<br><br>
+            法人マニュアルが登録されている場合はその内容を参照して回答します。
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <textarea class="msg-input" id="msgInput" rows="1" placeholder="質問を入力してください…"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const ROLE_LABELS={
+  admin:'システム管理者',doctor:'医師',manager:'管理者',
+  'office-clinic':'医院事務','nurse-clinic':'医院看護師','nurse-facility':'施設看護師',
+  'care-sako':'介護職員（サ高住）','care-kotaki':'介護職員（小多機）',
+  'care-houmon':'訪問介護職員','care-day':'デイサービス職員',
+  kyotaku:'居宅介護支援職員',board:'理事会',
+};
+
+const DATA_VERSION='v4';
+if(localStorage.getItem('vs_version')!==DATA_VERSION){
+  ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
+  localStorage.setItem('vs_version',DATA_VERSION);
+}
+
+const DEFAULT_USERS=[
+  {id:1,name:'山田 義雄',email:'admin@aura-net.jp',password:'admin123',role:'admin',dept:'システム管理',active:true},
+  {id:2,name:'鈴木 一郎',email:'doctor@aura-net.jp',password:'demo123',role:'doctor',dept:'内科・外科',active:true},
+  {id:12,name:'加藤 誠',email:'manager@aura-net.jp',password:'demo123',role:'manager',dept:'施設管理者',active:true},
+  {id:3,name:'田中 明美',email:'office@aura-net.jp',password:'demo123',role:'office-clinic',dept:'医院事務',active:true},
+  {id:4,name:'佐藤 花子',email:'nurse-clinic@aura-net.jp',password:'demo123',role:'nurse-clinic',dept:'外来看護師',active:true},
+  {id:5,name:'伊藤 美咲',email:'nurse-facility@aura-net.jp',password:'demo123',role:'nurse-facility',dept:'施設看護師',active:true},
+  {id:6,name:'渡辺 健太',email:'care-sako@aura-net.jp',password:'demo123',role:'care-sako',dept:'サ高住',active:true},
+  {id:7,name:'松本 真理',email:'care-kotaki@aura-net.jp',password:'demo123',role:'care-kotaki',dept:'小多機',active:true},
+  {id:8,name:'高橋 拓哉',email:'care-houmon@aura-net.jp',password:'demo123',role:'care-houmon',dept:'訪問介護',active:true},
+  {id:9,name:'中村 恵子',email:'care-day@aura-net.jp',password:'demo123',role:'care-day',dept:'デイサービス',active:true},
+  {id:10,name:'小林 俊介',email:'kyotaku@aura-net.jp',password:'demo123',role:'kyotaku',dept:'居宅支援',active:true},
+  {id:11,name:'木下 理事長',email:'board@aura-net.jp',password:'demo123',role:'board',dept:'理事会',active:true},
+];
+
+let currentUser=null;
+let isBusy=false;
+function getUsers(){return JSON.parse(localStorage.getItem('vs_users')||'null')||DEFAULT_USERS;}
+function getManuals(){return JSON.parse(localStorage.getItem('vs_manuals')||'[]');}
+
+const AVATAR_COLORS=['#2e7d5e','#c62828','#1565c0','#6a1b9a','#e65100','#00695c','#4527a0','#ad1457','#37474f','#558b2f','#0277bd'];
+function avatarColor(id){return AVATAR_COLORS[(id-1)%AVATAR_COLORS.length];}
+function initials(n){if(!n)return'?';const p=n.trim().split(/\s+/);return p.length>=2?p[0][0]+p[1][0]:n.substring(0,2);}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function showToast(msg,ms=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);}
+function now(){return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});}
+
+// ===== LOGIN =====
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  const user=getUsers().find(u=>u.email===email&&u.password===pw);
+  if(!user){document.getElementById('loginError').textContent='メールアドレスまたはパスワードが正しくありません';return;}
+  if(!user.active){document.getElementById('loginError').textContent='このアカウントは無効化されています';return;}
+  currentUser=user;
+  localStorage.setItem('vs_session',JSON.stringify(user.id));
+  startApp();
+}
+function doLogout(){
+  currentUser=null;
+  localStorage.removeItem('vs_session');
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+function tryAutoLogin(){
+  const session=localStorage.getItem('vs_session');
+  if(!session)return false;
+  try{
+    const uid=JSON.parse(session);
+    const u=getUsers().find(u=>u.id===uid);
+    if(u&&u.active){currentUser=u;return true;}
+  }catch(e){}
+  return false;
+}
+
+// ===== APP =====
+function startApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  const u=currentUser;
+  document.getElementById('navName').textContent=u.name;
+  document.getElementById('navRole').textContent=ROLE_LABELS[u.role]||u.role;
+  const av=document.getElementById('navAvatar');
+  av.style.background=avatarColor(u.id);
+  av.textContent=initials(u.name);
+  // Gemini key check
+  const key=localStorage.getItem('gemini_api_key');
+  if(key){
+    document.getElementById('keyBar').classList.add('hidden');
+    setAiStatus(true);
+  }
+}
+
+function saveKey(){
+  const k=document.getElementById('keyInput').value.trim();
+  if(!k)return showToast('APIキーを入力してください');
+  localStorage.setItem('gemini_api_key',k);
+  document.getElementById('keyBar').classList.add('hidden');
+  setAiStatus(true);
+  showToast('Gemini APIキーを設定しました ✨');
+}
+
+function setAiStatus(gemini){
+  document.getElementById('aiDot').className='ai-dot'+(gemini?' gemini':'');
+  document.getElementById('aiStatusText').textContent=gemini?'Gemini 接続中':'スタンバイ';
+}
+
+// ===== MANUAL CONTEXT =====
+function buildContext(){
+  const manuals=getManuals();
+  if(!manuals.length)return '';
+  const accessible=manuals.filter(m=>{
+    if(m.roles.includes('all'))return true;
+    return m.roles.includes(currentUser.role)||currentUser.role==='admin';
+  });
+  return accessible.map(m=>`【${m.name}】\n${m.content}`).join('\n\n');
+}
+
+// ===== GEMINI API =====
+async function callGemini(q){
+  const key=localStorage.getItem('gemini_api_key');
+  if(!key)return null;
+  const ctx=buildContext();
+  const prompt=`あなたは医療法人「AURA NET」の業務アシスタントAIです。
+以下の法人マニュアルを参照して、職員の質問に正確・簡潔に日本語で答えてください。
+マニュアルに記載がない場合は「マニュアルに記載がありません。担当者にご確認ください。」と答えてください。
+
+${ctx?`【法人マニュアル】\n${ctx}\n\n`:''}【質問】${q}`;
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    if(!res.ok){const e=await res.json();return`⚠️ APIエラー：${e.error?.message||res.statusText}`;}
+    const d=await res.json();
+    return d.candidates?.[0]?.content?.parts?.[0]?.text||'回答を取得できませんでした。';
+  }catch(e){return`⚠️ 通信エラー：${e.message}`;}
+}
+
+const FALLBACK={
+  '感染':'手洗いは流水で15秒以上。アルコール消毒は手全体に広げ乾燥まで。感染が疑われる場合は速やかに上長へ報告してください。',
+  '緊急':'①安全確認 ②119番通報 ③上長報告 ④AED使用（心肺停止時）⑤家族への連絡 の順で対応します。',
+  'AED':'AEDは各フロアのナースステーション横に設置されています。電源を入れると音声ガイドに従ってください。',
+  '介護記録':'5W1H（いつ・どこで・誰が・何を・なぜ・どのように）で客観的に記録。主観は「〜と思われる」と明記。当日中に完成。',
+  'ヒヤリハット':'発生後24時間以内に所定フォームへ記入し、上長へも口頭報告。責任追及でなく再発防止が目的です。',
+  '有給':'有給休暇は入職6ヶ月後から付与。申請は2週間前までに上長へ。',
+  '個人情報':'利用者の個人情報は業務目的以外に使用禁止。外部への漏えいは厳禁。スマホでの撮影・SNS投稿は行わないこと。',
+  'ハラスメント':'ハラスメントに関する相談は管理者または外部相談窓口へ。匿名での相談も可能です。',
+  '服薬':'服薬介助は医師・看護師の指示に従う。本人確認を必ず実施。飲み込み確認まで目を離さない。',
+  'バイタル':'体温・血圧・脈拍・SpO2を測定。異常値は速やかに看護師・医師へ報告。記録は測定直後に。',
+  '事故':'事故発生時：①利用者の安全確保 ②医療処置（必要時） ③上長報告 ④事故報告書作成 ⑤家族説明。',
+};
+
+// ===== MESSAGES =====
+function addUserMsg(text){
+  const msgs=document.getElementById('messages');
+  const row=document.createElement('div');row.className='msg-row user-row';
+  row.innerHTML=`
+    <div class="msg-avatar" style="background:${avatarColor(currentUser.id)}">${initials(currentUser.name)}</div>
+    <div class="msg-bubble">${escHtml(text)}<div class="msg-time">${now()}</div></div>`;
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addTyping(){
+  const msgs=document.getElementById('messages');
+  const row=document.createElement('div');row.className='msg-row ai-row';row.id='typingRow';
+  row.innerHTML=`
+    <div class="msg-avatar" style="background:var(--primary);font-size:16px">✨</div>
+    <div class="msg-bubble">
+      <div class="msg-label">AURA NET AI</div>
+      <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+    </div>`;
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addAiMsg(text){
+  const typing=document.getElementById('typingRow');
+  if(typing)typing.remove();
+  const msgs=document.getElementById('messages');
+  const row=document.createElement('div');row.className='msg-row ai-row';
+  const key=localStorage.getItem('gemini_api_key');
+  row.innerHTML=`
+    <div class="msg-avatar" style="background:var(--primary);font-size:16px">✨</div>
+    <div class="msg-bubble">
+      <div class="msg-label">AURA NET AI${key?' (Gemini)':''}</div>
+      ${escHtml(text)}
+      <div class="msg-time">${now()}</div>
+    </div>`;
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+}
+
+async function ask(q){
+  if(isBusy||!q.trim())return;
+  isBusy=true;
+  document.getElementById('sendBtn').disabled=true;
+  addUserMsg(q);
+  addTyping();
+  const key=localStorage.getItem('gemini_api_key');
+  let answer;
+  if(key){
+    answer=await callGemini(q);
+  }else{
+    await new Promise(r=>setTimeout(r,600));
+    answer=null;
+    for(const[kw,ans]of Object.entries(FALLBACK)){if(q.includes(kw)){answer=ans;break;}}
+    const manuals=getManuals();
+    if(!answer&&manuals.length){
+      for(const m of manuals){
+        const accessible=m.roles.includes('all')||m.roles.includes(currentUser.role)||currentUser.role==='admin';
+        if(accessible&&q.includes(m.name.slice(0,4))){answer=`📄「${m.name}」より：\n${m.content}`;break;}
+      }
+    }
+    if(!answer)answer=`「${q}」についての詳細な回答はGemini APIキーを設定することで取得できます。\nAPIキーは上のバーから入力してください。`;
+  }
+  addAiMsg(answer||'回答を取得できませんでした。');
+  isBusy=false;
+  document.getElementById('sendBtn').disabled=false;
+}
+
+function sendMsg(){
+  const inp=document.getElementById('msgInput');
+  const q=inp.value.trim();
+  inp.value='';inp.style.height='';
+  ask(q);
+}
+
+function handleKey(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
+}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded',()=>{
+  if(tryAutoLogin())startApp();
+});
+document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+</script>
+</body>
+</html>
