@@ -990,6 +990,8 @@ const DEFAULT_SURVEYS = [
 
 const AVATAR_COLORS = ['#2e7d5e','#c62828','#1565c0','#6a1b9a','#e65100','#00695c','#4527a0','#ad1457','#37474f','#558b2f','#0277bd'];
 
+const GEMINI_API_KEY = 'AIzaSyCY-Vh1BHPrPOdEs0X-Sc5AtgBkamY8YOc';
+
 // ===== STATE =====
 // バージョンが変わったらlocalStorageをリセット（ドメイン変更等に対応）
 const DATA_VERSION = 'v5';
@@ -1064,7 +1066,7 @@ function startApp(){
   document.getElementById('navLogout').style.display='';
   // show hamburger on mobile after login
   if(window.innerWidth<=768) document.getElementById('topNavHam').style.display='flex';
-  const key=localStorage.getItem('gemini_api_key')||'';
+  const key=GEMINI_API_KEY||'';
   document.getElementById('adminGeminiKey').value=key;
   renderChannels(); renderDMList(); updateSurveyBadge();
   const first=CHANNELS.find(c=>canAccess(c,u.role));
@@ -1223,7 +1225,7 @@ function buildManualContext(){
 }
 
 async function callGeminiAPI(q){
-  const apiKey=localStorage.getItem('gemini_api_key'); if(!apiKey)return null;
+  const apiKey=GEMINI_API_KEY; if(!apiKey)return null;
   const ctx=buildManualContext();
   const prompt=`あなたは医療法人「AURA NET」の業務アシスタントAIです。
 以下の法人マニュアルを参照して、職員の質問に正確・簡潔に日本語で答えてください。
@@ -1259,15 +1261,10 @@ async function askBot(q){
   const typing=document.createElement('div'); typing.className='bot-msg bot-a';
   typing.innerHTML='<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
   bm.appendChild(typing); bm.scrollTop=bm.scrollHeight;
-  const apiKey=localStorage.getItem('gemini_api_key');
-  let answer;
-  if(apiKey){ answer=await callGeminiAPI(q); }
-  else{
-    await new Promise(r=>setTimeout(r,700));
-    answer=null;
+  let answer = await callGeminiAPI(q);
+  if(!answer){
     for(const[kw,ans]of Object.entries(FALLBACK_KB)){if(q.includes(kw)){answer=ans;break;}}
-    if(!answer){ for(const m of manuals){if(canAccessManual(m)&&q.includes(m.name.slice(0,3))){answer=`📄「${m.name}」より：\n${m.content}`;break;}} }
-    if(!answer)answer=`「${q}」についてはGemini APIキーを設定するとより詳細に回答できます。\nキーは右上の⚙️管理パネル > 設定から入力してください。`;
+    if(!answer)answer='申し訳ありません、回答を取得できませんでした。しばらく経ってからお試しください。';
   }
   bm.removeChild(typing);
   const aDiv=document.createElement('div'); aDiv.className='bot-msg bot-a';
