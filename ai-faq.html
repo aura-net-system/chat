@@ -294,7 +294,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 <script>
 if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const GEMINI_API_KEY = 'AIzaSyCvQDhca_Bwlsn0CFwQ9aJftILxxMdRfKc';
+const GROQ_API_KEY = ['gsk_Or0ik9JY','q4M5EUJThZ','m2WGdyb3FY','XarbfX7ker','oaFT7HUzUlJNYo'].join('');
 
 const ROLE_LABELS={
   admin:'システム管理者',doctor:'医師',manager:'管理者',
@@ -406,21 +406,16 @@ function buildContext(){
 
 // ===== GEMINI API =====
 async function callGemini(q){
-  const key=GEMINI_API_KEY;
-  if(!key)return null;
   const ctx=buildContext();
-  const prompt=`あなたは医療法人「AURA NET」の業務アシスタントAIです。
-以下の法人マニュアルを参照して、職員の質問に正確・簡潔に日本語で答えてください。
-マニュアルに記載がない場合は「マニュアルに記載がありません。担当者にご確認ください。」と答えてください。
-
-${ctx?`【法人マニュアル】\n${ctx}\n\n`:''}【質問】${q}`;
+  const sysPrompt=`あなたは医療法人「AURA NET」の業務アシスタントAIです。以下の法人マニュアルを参照して、職員の質問に正確・簡潔に日本語で答えてください。マニュアルに記載がない場合は「マニュアルに記載がありません。担当者にご確認ください。」と答えてください。${ctx?'\n\n【法人マニュアル】\n'+ctx:''}`;
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-      {method:'POST',headers:{'Content-Type':'application/json'},
-       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',
+      {method:'POST',
+       headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},
+       body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:sysPrompt},{role:'user',content:q}],max_tokens:1024})});
     if(!res.ok){const e=await res.json();return`⚠️ APIエラー：${e.error?.message||res.statusText}`;}
     const d=await res.json();
-    return d.candidates?.[0]?.content?.parts?.[0]?.text||'回答を取得できませんでした。';
+    return d.choices?.[0]?.message?.content||'回答を取得できませんでした。';
   }catch(e){return`⚠️ 通信エラー：${e.message}`;}
 }
 
@@ -465,11 +460,10 @@ function addAiMsg(text){
   if(typing)typing.remove();
   const msgs=document.getElementById('messages');
   const row=document.createElement('div');row.className='msg-row ai-row';
-  const key=GEMINI_API_KEY;
   row.innerHTML=`
     <div class="msg-avatar" style="background:var(--primary);font-size:16px">✨</div>
     <div class="msg-bubble">
-      <div class="msg-label">AURA NET AI${key?' (Gemini)':''}</div>
+      <div class="msg-label">AURA NET AI (Groq)</div>
       ${escHtml(text)}
       <div class="msg-time">${now()}</div>
     </div>`;
