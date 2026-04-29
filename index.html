@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>AURA NET</title>
+<!-- PDF.js for PDF text extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- mammoth.js for Word (.docx) text extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{
+  --primary:#2e7d5e;--primary-dark:#1b5e42;--primary-light:#e8f5f0;
+  --sidebar-bg:#1a2332;--sidebar-hover:#263348;--sidebar-active:#2e7d5e;
+  --chat-bg:#f4f6f9;--header-bg:#fff;--msg-own:#2e7d5e;--msg-other:#fff;
+  --text-primary:#1a1f2e;--text-muted:#8892a4;--border:#e4e9f0;
+  --danger:#e53935;--success:#43a047;--warning:#fb8c00;--bot-bg:#f0f7f4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+  background:var(--sidebar-bg);color:var(--text-primary);height:100dvh;overflow:hidden}
+
+/* ===LOGIN=== */
+#loginScreen{display:flex;align-items:center;justify-content:center;
+  height:100dvh;background:linear-gradient(135deg,#1a2332 0%,#2e7d5e 100%);padding:20px}
+.login-card{background:#fff;border-radius:20px;padding:40px 36px;
+  width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:26px}
+.login-logo .icon{font-size:52px}
+.login-logo h1{font-size:28px;font-weight:800;color:var(--primary);margin-top:8px;letter-spacing:-.5px}
+.login-logo .sub{color:#888;font-size:11px;margin-top:4px;letter-spacing:1px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;
+  font-size:14px;transition:border-color .2s;background:#fafafa;color:var(--text-primary);font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--primary);background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:10px 18px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff;width:100%}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-warning{background:var(--warning);color:#fff}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1.5px solid var(--border)}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:8px}
+.demo-accounts{margin-top:18px;padding:12px;background:var(--primary-light);border-radius:10px;font-size:12px}
+.demo-accounts p{font-weight:700;color:var(--primary);margin-bottom:7px}
+.demo-btn{display:inline-block;padding:3px 9px;margin:3px;background:#fff;border:1px solid var(--primary);
+  color:var(--primary);border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s}
+.demo-btn:hover{background:var(--primary);color:#fff}
+.error-msg{color:var(--danger);font-size:13px;text-align:center;margin-top:10px}
+
+/* ===APP=== */
+#app{display:none;height:100dvh;flex-direction:column}
+.app-layout{display:flex;flex:1;overflow:hidden}
+
+/* ===SIDEBAR=== */
+.sidebar{width:252px;background:var(--sidebar-bg);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:13px 15px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar-logo{display:flex;align-items:center;gap:10px}
+.sidebar-logo .logo-icon{font-size:24px}
+.sidebar-logo h1{color:#fff;font-size:15px;font-weight:800;letter-spacing:-.3px}
+.sidebar-logo .sq{color:#6ec9a8}
+.user-role-badge{display:inline-block;padding:2px 8px;background:rgba(46,125,94,.3);
+  color:#6ec9a8;border-radius:20px;font-size:11px;margin-top:5px}
+.sidebar-scroll{flex:1;overflow-y:auto}
+.sidebar-section{padding:5px 0}
+.sidebar-section-title{padding:8px 15px 3px;font-size:10px;font-weight:800;
+  color:rgba(255,255,255,.33);text-transform:uppercase;letter-spacing:.8px}
+.channel-item{display:flex;align-items:center;gap:9px;padding:7px 15px;cursor:pointer;
+  color:rgba(255,255,255,.65);font-size:13.5px;transition:all .15s;position:relative}
+.channel-item:hover{background:var(--sidebar-hover);color:#fff}
+.channel-item.active{background:var(--sidebar-active);color:#fff}
+.channel-item .ch-icon{font-size:15px;flex-shrink:0}
+.channel-item .ch-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.unread-badge{background:var(--danger);color:#fff;border-radius:10px;
+  padding:1px 6px;font-size:11px;font-weight:700;min-width:18px;text-align:center}
+.dm-item{display:flex;align-items:center;gap:9px;padding:6px 15px;cursor:pointer;
+  color:rgba(255,255,255,.65);font-size:13px;transition:all .15s}
+.dm-item:hover{background:var(--sidebar-hover);color:#fff}
+.dm-item.active{background:#3d5a80;color:#fff}
+.dm-avatar-sm{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;position:relative}
+.dm-online{width:8px;height:8px;border-radius:50%;background:var(--success);
+  border:2px solid var(--sidebar-bg);position:absolute;bottom:-1px;right:-1px}
+.dm-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dm-role-small{font-size:10px;color:rgba(255,255,255,.38)}
+.sidebar-footer{padding:11px 15px;border-top:1px solid rgba(255,255,255,.07)}
+.user-info-sidebar{display:flex;align-items:center;gap:10px}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;position:relative}
+.online-dot{width:9px;height:9px;border-radius:50%;background:var(--success);
+  border:2px solid var(--sidebar-bg);position:absolute;bottom:-1px;right:-1px}
+.sidebar-footer .user-name{color:#fff;font-size:13px;font-weight:600}
+.sidebar-footer .user-dept{color:rgba(255,255,255,.43);font-size:11px}
+.sidebar-actions{display:flex;gap:5px;margin-top:10px}
+.sidebar-action-btn{flex:1;padding:7px;background:rgba(255,255,255,.07);border:none;
+  border-radius:8px;color:rgba(255,255,255,.65);cursor:pointer;font-size:11px;transition:all .15s;white-space:nowrap}
+.sidebar-action-btn:hover{background:rgba(255,255,255,.14);color:#fff}
+.mobile-header{display:none;align-items:center;gap:12px;padding:10px 15px;
+  background:var(--sidebar-bg);border-bottom:1px solid rgba(255,255,255,.07)}
+.hamburger{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px}
+.mobile-title{color:#fff;font-size:15px;font-weight:700;flex:1}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+
+/* ===CHAT=== */
+.chat-area{flex:1;display:flex;flex-direction:column;background:var(--chat-bg);overflow:hidden}
+.chat-header{display:flex;align-items:center;gap:12px;padding:11px 18px;
+  background:var(--header-bg);border-bottom:1px solid var(--border);flex-shrink:0;
+  box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.chat-header-info{flex:1}
+.chat-header-name{font-size:16px;font-weight:700;color:var(--text-primary)}
+.chat-header-desc{font-size:12px;color:var(--text-muted);margin-top:1px}
+.chat-header-actions{display:flex;gap:8px}
+.icon-btn{background:none;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;
+  font-size:18px;display:flex;align-items:center;justify-content:center;
+  color:var(--text-muted);transition:all .15s}
+.icon-btn:hover{background:var(--border);color:var(--text-primary)}
+.dm-header-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;
+  background:#e8f0fb;border-radius:20px;font-size:11px;color:#3d5a80;font-weight:600;margin-top:3px}
+.messages{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:2px}
+.msg-date-divider{text-align:center;margin:12px 0}
+.msg-date-divider span{background:#dde4ed;color:#6b7897;font-size:11px;padding:3px 11px;border-radius:20px}
+.msg-row{display:flex;align-items:flex-end;gap:8px;margin-bottom:2px}
+.msg-row.own{flex-direction:row-reverse}
+.msg-avatar-chat{width:29px;height:29px;border-radius:50%;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.msg-avatar-chat.hidden{visibility:hidden}
+.msg-content{max-width:70%}
+.msg-row.own .msg-content{align-items:flex-end;display:flex;flex-direction:column}
+.msg-sender{font-size:11px;color:var(--text-muted);margin-bottom:3px;padding-left:4px}
+.bubble{padding:9px 13px;border-radius:16px;font-size:14px;line-height:1.6;
+  word-break:break-word;box-shadow:0 1px 2px rgba(0,0,0,.07)}
+.own .bubble{background:var(--msg-own);color:#fff;border-bottom-right-radius:4px}
+.other .bubble{background:var(--msg-other);color:var(--text-primary);border-bottom-left-radius:4px}
+.msg-meta{display:flex;align-items:center;gap:4px;margin-top:2px;font-size:11px;
+  color:var(--text-muted);padding:0 4px}
+.msg-row.own .msg-meta{flex-direction:row-reverse}
+.read-indicator{color:var(--primary);font-size:12px}
+.image-msg{max-width:200px;border-radius:12px;cursor:pointer;transition:opacity .2s}
+.image-msg:hover{opacity:.9}
+.file-msg{display:flex;align-items:center;gap:8px;padding:10px 13px;
+  background:var(--primary-light);border-radius:10px;border:1px solid #b2dfcf;
+  cursor:pointer;font-size:13px;color:var(--primary)}
+
+/* ===INPUT=== */
+.chat-input-area{padding:11px 14px;background:#fff;border-top:1px solid var(--border);flex-shrink:0}
+.input-wrapper{display:flex;align-items:flex-end;gap:8px;background:var(--chat-bg);
+  border:1.5px solid var(--border);border-radius:16px;padding:7px 11px;transition:border-color .2s}
+.input-wrapper:focus-within{border-color:var(--primary)}
+.msg-input{flex:1;border:none;background:transparent;font-size:14px;resize:none;
+  min-height:24px;max-height:120px;outline:none;font-family:inherit;color:var(--text-primary);line-height:1.5}
+.input-actions{display:flex;align-items:center;gap:4px}
+.attach-btn{background:none;border:none;color:var(--text-muted);font-size:19px;cursor:pointer;
+  padding:4px;border-radius:8px;transition:all .15s}
+.attach-btn:hover{color:var(--primary);background:var(--primary-light)}
+.send-btn{background:var(--primary);border:none;color:#fff;width:34px;height:34px;
+  border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;
+  justify-content:center;transition:all .15s;flex-shrink:0}
+.send-btn:hover{background:var(--primary-dark);transform:scale(1.05)}
+
+/* ===BOT PANEL=== */
+.bot-panel{width:310px;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.bot-panel.hidden{display:none}
+.bot-header{padding:13px 15px;background:linear-gradient(135deg,#1a2332,var(--primary));color:#fff}
+.bot-header h3{font-size:15px;font-weight:700}
+.bot-header p{font-size:11px;opacity:.8;margin-top:2px}
+.bot-key-bar{padding:8px 11px;background:#fff8e1;border-bottom:1px solid #ffe082;
+  display:flex;align-items:center;gap:7px}
+.bot-key-bar input{flex:1;padding:5px 9px;border:1px solid #ffe082;border-radius:7px;font-size:12px;outline:none}
+.bot-key-bar button{padding:5px 10px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer}
+.bot-messages{flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:9px;background:var(--bot-bg)}
+.bot-msg{max-width:92%;font-size:13px;line-height:1.55}
+.bot-msg.user-q{align-self:flex-end;background:var(--primary);color:#fff;padding:8px 11px;border-radius:12px 12px 2px 12px}
+.bot-msg.bot-a{align-self:flex-start;background:#fff;color:var(--text-primary);padding:10px 12px;
+  border-radius:2px 12px 12px 12px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.bot-msg.bot-a .bot-label{font-size:10px;font-weight:700;color:var(--primary);margin-bottom:4px}
+.bot-suggestions{padding:7px 11px;background:#fff;border-top:1px solid var(--border)}
+.bot-suggestions p{font-size:10px;color:var(--text-muted);margin-bottom:5px}
+.suggestion-chip{display:inline-block;padding:4px 9px;margin:3px;background:var(--bot-bg);
+  border:1px solid #b2dfcf;border-radius:20px;font-size:12px;color:var(--primary);cursor:pointer;transition:all .15s}
+.suggestion-chip:hover{background:var(--primary);color:#fff}
+.bot-input-area{padding:9px 11px;border-top:1px solid var(--border);display:flex;gap:7px}
+.bot-input{flex:1;padding:7px 11px;border:1.5px solid var(--border);border-radius:20px;font-size:13px;outline:none;font-family:inherit}
+.bot-input:focus{border-color:var(--primary)}
+.bot-send{background:var(--primary);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px}
+
+/* ===SURVEY CARD=== */
+.survey-card{background:#fff;border-radius:14px;padding:16px;margin-bottom:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);border:1.5px solid var(--border)}
+.survey-card.responded{border-color:#b2dfcf}
+.survey-title{font-size:15px;font-weight:700;color:var(--text-primary)}
+.survey-meta{font-size:12px;color:var(--text-muted);margin-top:3px}
+.survey-q{margin:12px 0 6px;font-size:14px;font-weight:600}
+.survey-options{display:flex;flex-wrap:wrap;gap:8px}
+.survey-opt-btn{padding:7px 16px;border:2px solid var(--border);border-radius:30px;
+  background:#fff;font-size:13px;cursor:pointer;transition:all .15s;font-weight:600}
+.survey-opt-btn:hover{border-color:var(--primary);color:var(--primary)}
+.survey-opt-btn.selected{background:var(--primary);color:#fff;border-color:var(--primary)}
+.survey-opt-btn.attend{border-color:var(--success);color:var(--success)}
+.survey-opt-btn.attend.selected{background:var(--success);color:#fff}
+.survey-opt-btn.absent{border-color:var(--danger);color:var(--danger)}
+.survey-opt-btn.absent.selected{background:var(--danger);color:#fff}
+.survey-text-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);
+  border-radius:10px;font-size:14px;outline:none;font-family:inherit;margin-top:4px}
+.survey-text-input:focus{border-color:var(--primary)}
+.result-bar-wrap{margin:4px 0}
+.result-bar-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:3px}
+.result-bar-bg{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.result-bar-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .4s}
+
+/* ===MODAL=== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:740px;
+  margin:auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-header{padding:16px 22px;background:linear-gradient(135deg,#1a2332,var(--primary));
+  color:#fff;display:flex;align-items:center;gap:12px}
+.modal-header h2{font-size:17px;flex:1}
+.modal-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer}
+.modal-close:hover{color:#fff}
+.modal-body{padding:22px}
+.tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--chat-bg);padding:4px;border-radius:10px}
+.tab-btn{flex:1;padding:7px;background:transparent;border:none;border-radius:8px;
+  cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);transition:all .15s}
+.tab-btn.active{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.user-table{width:100%;border-collapse:collapse;font-size:13px}
+.user-table th{background:var(--chat-bg);padding:9px 11px;text-align:left;
+  font-weight:600;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.user-table td{padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+.user-table tr:hover td{background:#f9fafb}
+.status-badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.status-active{background:#e8f5e9;color:var(--success)}
+.status-inactive{background:#ffebee;color:var(--danger)}
+.add-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:14px}
+.manual-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;
+  background:var(--chat-bg);border-radius:10px;margin-bottom:9px;transition:all .15s}
+.manual-item:hover{background:var(--primary-light)}
+.manual-item .m-icon{font-size:26px;flex-shrink:0}
+.manual-item .m-info{flex:1}
+.manual-item .m-name{font-size:14px;font-weight:600;color:var(--text-primary)}
+.manual-item .m-meta{font-size:12px;color:var(--text-muted);margin-top:2px}
+.manual-item .m-roles{margin-top:4px;display:flex;flex-wrap:wrap;gap:3px}
+.role-chip{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--primary-light);color:var(--primary);font-weight:600}
+
+/* upload area */
+.upload-area{border:2px dashed var(--border);border-radius:12px;padding:24px;
+  text-align:center;cursor:pointer;transition:all .2s;background:#fafafa}
+.upload-area:hover{border-color:var(--primary);background:var(--primary-light)}
+.upload-area.drag{border-color:var(--primary);background:var(--primary-light)}
+
+/* role checkboxes */
+.role-checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.role-check-label{display:flex;align-items:center;gap:5px;cursor:pointer;
+  padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;transition:all .15s}
+.role-check-label:hover{border-color:var(--primary)}
+.role-check-label input:checked+span{color:var(--primary);font-weight:700}
+.role-check-label:has(input:checked){border-color:var(--primary);background:var(--primary-light)}
+
+/* survey admin form */
+.sq-form{padding:16px;background:var(--chat-bg);border-radius:12px;margin-bottom:14px}
+.sq-question-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.sq-question-row input{flex:1}
+.sq-question-row select{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none}
+.sq-admin-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;
+  border:1.5px solid var(--border)}
+.sq-admin-card .sq-title{font-size:14px;font-weight:700}
+.sq-admin-card .sq-stat{font-size:12px;color:var(--text-muted);margin-top:4px}
+
+/* IMG VIEWER */
+.img-viewer{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;
+  align-items:center;justify-content:center;padding:20px}
+.img-viewer.open{display:flex}
+.img-viewer img{max-width:100%;max-height:90vh;border-radius:8px}
+.img-viewer-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);
+  border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer}
+
+/* TOAST */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1a2332;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;
+  opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* TYPING */
+.typing-indicator{display:flex;gap:4px;align-items:center;padding:4px 0}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);opacity:.5;animation:bounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-5px);opacity:1}}
+
+/* GROUP TAGS */
+.group-tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;margin-left:4px}
+.group-clinic{background:#e3f2fd;color:#1565c0}
+.group-facility{background:#f3e5f5;color:#6a1b9a}
+.group-mgmt{background:#fff3e0;color:#e65100}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{position:fixed;left:-252px;top:0;bottom:0;z-index:100;transition:transform .3s}
+  .sidebar.open{transform:translateX(252px)}
+  .sidebar-overlay.open{display:block}
+  .mobile-header{display:flex}
+  .bot-panel{display:none!important}
+  .add-form-grid{grid-template-columns:1fr}
+}
+@media(max-width:1050px){.bot-panel{width:270px}}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#c5cdd6;border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">🏘️</div>
+      <h1>AURA NET</h1>
+      <p class="sub">MEDICAL WELFARE COMMUNICATION</p>
+    </div>
+    <div class="form-group">
+      <label>メールアドレス</label>
+      <input type="email" id="loginEmail" placeholder="example@aura-net.jp">
+    </div>
+    <div class="form-group">
+      <label>パスワード</label>
+      <input type="password" id="loginPassword" placeholder="パスワードを入力">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">ログイン</button>
+    <div id="loginError" class="error-msg"></div>
+    <div class="demo-accounts">
+      <p>▼ デモアカウント一覧（クリックで自動入力）</p>
+      <table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:8px">
+        <tr style="color:#888"><td style="padding:2px 4px">役職</td><td style="padding:2px 4px">メール</td><td style="padding:2px 4px">PW</td></tr>
+        <tr><td style="padding:2px 4px;color:#555">システム管理者</td><td style="padding:2px 4px;color:var(--primary)">admin@aura-net.jp</td><td style="padding:2px 4px;color:#555">admin123</td></tr>
+        <tr><td style="padding:2px 4px;color:#555">その他全員</td><td style="padding:2px 4px;color:var(--primary)">各メール</td><td style="padding:2px 4px;color:#555">demo123</td></tr>
+      </table>
+      <span class="demo-btn" onclick="fillDemo('admin@aura-net.jp','admin123')">システム管理者</span>
+      <span class="demo-btn" onclick="fillDemo('doctor@aura-net.jp','demo123')">医師</span>
+      <span class="demo-btn" onclick="fillDemo('manager@aura-net.jp','demo123')">管理者</span>
+      <span class="demo-btn" onclick="fillDemo('office@aura-net.jp','demo123')">医院事務</span>
+      <span class="demo-btn" onclick="fillDemo('nurse-clinic@aura-net.jp','demo123')">医院看護師</span>
+      <span class="demo-btn" onclick="fillDemo('nurse-facility@aura-net.jp','demo123')">施設看護師</span>
+      <span class="demo-btn" onclick="fillDemo('care-sako@aura-net.jp','demo123')">介護（サ高住）</span>
+      <span class="demo-btn" onclick="fillDemo('care-kotaki@aura-net.jp','demo123')">介護（小多機）</span>
+      <span class="demo-btn" onclick="fillDemo('care-houmon@aura-net.jp','demo123')">訪問介護</span>
+      <span class="demo-btn" onclick="fillDemo('care-day@aura-net.jp','demo123')">デイサービス</span>
+      <span class="demo-btn" onclick="fillDemo('kyotaku@aura-net.jp','demo123')">居宅支援</span>
+      <span class="demo-btn" onclick="fillDemo('board@aura-net.jp','demo123')">理事会</span>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="mobile-header">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <span class="mobile-title" id="mobileTitle">AURA NET</span>
+    <button class="icon-btn" onclick="toggleBot()" style="color:rgba(255,255,255,.7);margin-left:auto;">✨</button>
+  </div>
+
+  <div class="app-layout">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="logo-icon">🏘️</span>
+          <h1>AURA NET</h1>
+        </div>
+        <div class="user-role-badge" id="sidebarRole">---</div>
+      </div>
+
+      <div class="sidebar-scroll">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">チャンネル</div>
+          <div id="channelList"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">ツール</div>
+          <a class="channel-item" href="002_シフト閲覧.html" style="text-decoration:none">
+            <span class="ch-icon">📅</span>
+            <span class="ch-name">シフト閲覧</span>
+          </a>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">アンケート</div>
+          <div class="channel-item" id="sidebar-survey" onclick="showSurveyView()">
+            <span class="ch-icon">🗳️</span>
+            <span class="ch-name">アンケート一覧</span>
+            <span class="unread-badge" id="surveyBadge" style="display:none"></span>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">ダイレクトメッセージ</div>
+          <div id="dmList"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-info-sidebar">
+          <div class="avatar" id="sidebarAvatar">
+            <span id="avatarInitial">?</span>
+            <div class="online-dot"></div>
+          </div>
+          <div>
+            <div class="user-name" id="sidebarName">---</div>
+            <div class="user-dept" id="sidebarDept">---</div>
+          </div>
+        </div>
+        <div class="sidebar-actions">
+          <button class="sidebar-action-btn" onclick="toggleBot()">✨ AI</button>
+          <button class="sidebar-action-btn" id="adminBtn" onclick="openAdmin()" style="display:none">⚙️ 管理</button>
+          <button class="sidebar-action-btn" onclick="openChangePw()">🔑 PW変更</button>
+          <button class="sidebar-action-btn" onclick="doLogout()">↩️ 退出</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT AREA -->
+    <div class="chat-area">
+      <div class="chat-header">
+        <div style="font-size:22px" id="chatChannelIcon">🏘️</div>
+        <div class="chat-header-info">
+          <div class="chat-header-name" id="chatChannelName">AURA NET</div>
+          <div class="chat-header-desc" id="chatChannelDesc">チャンネルまたはメンバーを選択してください</div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="icon-btn" onclick="toggleBot()" title="AI">✨</button>
+        </div>
+      </div>
+
+      <!-- CHAT VIEW -->
+      <div id="chatView" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+        <div class="messages" id="messages">
+          <div style="text-align:center;padding:50px 20px;color:var(--text-muted)">
+            <div style="font-size:52px;margin-bottom:14px">🏘️</div>
+            <p style="font-size:16px;font-weight:700;color:#555">AURA NET へようこそ</p>
+            <p style="font-size:13px;margin-top:8px">チャンネルまたはメンバーを選択してください</p>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="input-wrapper">
+            <textarea class="msg-input" id="msgInput" rows="1" placeholder="メッセージを入力…"
+              onkeydown="handleInputKey(event)" oninput="autoResize(this)"></textarea>
+            <div class="input-actions">
+              <button class="attach-btn" onclick="triggerAttach()" title="ファイル添付">📎</button>
+              <button class="attach-btn" onclick="triggerPhoto()" title="写真">📷</button>
+              <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+          </div>
+          <input type="file" id="fileInput" style="display:none" onchange="handleFile(event)" multiple>
+          <input type="file" id="photoInput" style="display:none" onchange="handleFile(event)" accept="image/*" capture="environment">
+        </div>
+      </div>
+
+      <!-- SURVEY VIEW -->
+      <div id="surveyView" style="display:none;flex:1;overflow-y:auto;padding:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h2 style="font-size:18px;font-weight:700">🗳️ アンケート一覧</h2>
+        </div>
+        <div id="surveyListUser"></div>
+      </div>
+    </div>
+
+    <!-- BOT PANEL -->
+    <div class="bot-panel hidden" id="botPanel">
+      <div class="bot-header">
+        <h3>✨ AURA NET AI</h3>
+        <p>Gemini × 法人マニュアルで回答</p>
+      </div>
+      <div class="bot-key-bar" id="botKeyBar">
+        <span style="font-size:11px;color:#666;white-space:nowrap">Gemini Key</span>
+        <input type="password" id="geminiKeyInput" placeholder="AIzaSy...">
+        <button onclick="saveGeminiKey()">設定</button>
+      </div>
+      <div class="bot-messages" id="botMessages">
+        <div class="bot-msg bot-a">
+          <div class="bot-label">✨ AURA NET AI</div>
+          こんにちは！法人マニュアルや業務手順についてご質問ください。Gemini APIキーを設定するとより詳細な回答が可能です。
+        </div>
+      </div>
+      <div class="bot-suggestions">
+        <p>よくある質問：</p>
+        <span class="suggestion-chip" onclick="askBot('感染対策の手順を教えてください')">感染対策</span>
+        <span class="suggestion-chip" onclick="askBot('緊急時の対応手順は？')">緊急時対応</span>
+        <span class="suggestion-chip" onclick="askBot('介護記録の書き方')">介護記録</span>
+        <span class="suggestion-chip" onclick="askBot('ヒヤリハットの報告方法は？')">ヒヤリハット</span>
+        <span class="suggestion-chip" onclick="askBot('有給休暇の申請方法')">休暇申請</span>
+      </div>
+      <div class="bot-input-area">
+        <input class="bot-input" id="botInput" type="text" placeholder="質問を入力…"
+          onkeydown="if(event.key==='Enter')askBot(this.value)">
+        <button class="bot-send" onclick="askBot(document.getElementById('botInput').value)">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span style="font-size:22px">⚙️</span>
+      <h2>システム管理パネル</h2>
+      <button class="modal-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('users')">👥 職員</button>
+        <button class="tab-btn" onclick="switchTab('adduser')">➕ 追加</button>
+        <button class="tab-btn" onclick="switchTab('manuals')">📚 マニュアル</button>
+        <button class="tab-btn" onclick="switchTab('surveys')">🗳️ アンケート</button>
+        <button class="tab-btn" onclick="switchTab('settings')">🔒 設定</button>
+      </div>
+
+      <!-- USERS -->
+      <div class="tab-content active" id="tab-users">
+        <div style="margin-bottom:11px;display:flex;gap:8px;align-items:center">
+          <input type="text" placeholder="名前・メールで検索…" id="userSearch" oninput="filterUsers()"
+            style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+          <span id="userCount" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="user-table">
+            <thead><tr><th>名前</th><th>職種</th><th>メール</th><th>状態</th><th>操作</th></tr></thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADD USER -->
+      <div class="tab-content" id="tab-adduser">
+
+        <!-- CSV IMPORT -->
+        <div style="background:var(--primary-light);border:1.5px solid #b2dfcf;border-radius:12px;padding:16px;margin-bottom:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <span style="font-size:14px;font-weight:700">📂 CSVから一括登録</span>
+              <span style="font-size:12px;color:var(--text-muted);margin-left:8px">MoneyForward・freee・その他HR系CSVに対応</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="downloadCsvTemplate()">📥 テンプレDL</button>
+          </div>
+          <div class="upload-area" id="csvUploadArea" style="padding:16px"
+            onclick="document.getElementById('csvFileInput').click()"
+            ondragover="handleCsvDragOver(event)" ondrop="handleCsvDrop(event)">
+            <div style="font-size:28px;margin-bottom:6px">📊</div>
+            <p style="font-size:13px;color:var(--text-muted)">CSVファイルをドロップ、またはクリックして選択<br>
+              <span style="font-size:11px">対応形式：.csv（UTF-8 / Shift-JIS 自動判定）</span></p>
+            <p id="csvFileName" style="font-size:12px;color:var(--primary);font-weight:600;margin-top:4px"></p>
+          </div>
+          <input type="file" id="csvFileInput" style="display:none" accept=".csv" onchange="handleCsvFile(event)">
+
+          <!-- Column Mapping -->
+          <div id="csvMapping" style="display:none;margin-top:14px">
+            <p style="font-size:13px;font-weight:700;margin-bottom:10px">📋 列のマッピング</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="csvMappingGrid"></div>
+            <div style="margin-top:12px;padding:12px;background:#fff;border-radius:10px;border:1px solid var(--border)">
+              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                <div>
+                  <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">初期パスワード（全員共通）</label>
+                  <input type="text" id="csvDefaultPw" value="Auranet2025!" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;width:180px">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">デフォルト職種（職種列がない場合）</label>
+                  <select id="csvDefaultRole" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+                    <option value="nurse-clinic">医院看護師</option>
+                    <option value="doctor">医師</option>
+                    <option value="office-clinic">医院事務</option>
+                    <option value="nurse-facility">施設看護師</option>
+                    <option value="care-sako">介護職員（サ高住）</option>
+                    <option value="care-kotaki">介護職員（小多機）</option>
+                    <option value="care-houmon">訪問介護職員</option>
+                    <option value="care-day">デイサービス職員</option>
+                    <option value="kyotaku">居宅介護支援職員</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="showCsvPreview()">プレビューを確認 →</button>
+          </div>
+
+          <!-- Preview -->
+          <div id="csvPreview" style="display:none;margin-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <p style="font-size:13px;font-weight:700">👀 インポートプレビュー（<span id="csvPreviewCount">0</span>名）</p>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csvPreview').style.display='none';document.getElementById('csvMapping').style.display='block'">← 戻る</button>
+                <button class="btn btn-success btn-sm" onclick="importCsvUsers()">✅ 一括登録する</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;max-height:240px;overflow-y:auto;border-radius:10px;border:1px solid var(--border)">
+              <table class="user-table" id="csvPreviewTable">
+                <thead><tr><th>#</th><th>氏名</th><th>メール</th><th>職種</th><th>部門</th><th>状態</th></tr></thead>
+                <tbody id="csvPreviewBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">または1名ずつ手動登録</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <!-- MANUAL FORM -->
+        <div class="add-form-grid">
+          <div class="form-group"><label>氏名 *</label><input type="text" id="newName" placeholder="山田 太郎"></div>
+          <div class="form-group"><label>メール *</label><input type="email" id="newEmail" placeholder="yamada@aura-net.jp"></div>
+          <div class="form-group"><label>パスワード *</label><input type="password" id="newPassword" placeholder="初期パスワード"></div>
+          <div class="form-group">
+            <label>職種 *</label>
+            <select id="newRole">
+              <option value="doctor">医師</option>
+              <option value="manager">管理者（各事業所管理者）</option>
+              <option value="office-clinic">医院事務</option>
+              <option value="nurse-clinic">医院看護師</option>
+              <option value="nurse-facility">施設看護師</option>
+              <option value="care-sako">介護職員（サ高住）</option>
+              <option value="care-kotaki">介護職員（小多機）</option>
+              <option value="care-houmon">訪問介護職員</option>
+              <option value="care-day">デイサービス職員</option>
+              <option value="kyotaku">居宅介護支援職員</option>
+              <option value="board">理事会</option>
+              <option value="admin">システム管理者</option>
+            </select>
+          </div>
+          <div class="form-group"><label>所属部門</label><input type="text" id="newDept" placeholder="外来、訪問介護事業所 等"></div>
+          <div class="form-group"><label>電話番号</label><input type="tel" id="newPhone" placeholder="090-0000-0000"></div>
+        </div>
+        <button class="btn btn-success" onclick="addUser()">✅ 職員を登録</button>
+      </div>
+
+      <!-- MANUALS -->
+      <div class="tab-content" id="tab-manuals">
+        <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
+          <span style="font-size:14px;font-weight:700">登録マニュアル</span>
+          <button class="btn btn-primary btn-sm" onclick="toggleAddManual()">＋ 追加</button>
+        </div>
+        <!-- Add Form -->
+        <div id="addManualForm" style="display:none;padding:16px;background:var(--chat-bg);border-radius:12px;margin-bottom:14px">
+          <div class="form-group"><label>マニュアル名 *</label><input type="text" id="manualName" placeholder="感染対策マニュアル"></div>
+          <div class="form-group">
+            <label>カテゴリ</label>
+            <select id="manualCategory">
+              <option>全職員共通</option><option>医療部門</option><option>介護部門</option><option>緊急対応</option><option>人事・総務</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>📂 ファイルアップロード（PDF / Word）または手動入力</label>
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('manualFileInput').click()"
+              ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+              <div style="font-size:32px;margin-bottom:8px">📄</div>
+              <p style="font-size:13px;color:var(--text-muted)">PDF・Word(.docx)ファイルをドロップ<br>またはクリックして選択</p>
+              <p id="uploadFileName" style="font-size:12px;color:var(--primary);margin-top:6px;font-weight:600"></p>
+            </div>
+            <input type="file" id="manualFileInput" style="display:none" accept=".pdf,.docx,.doc" onchange="handleManualFile(event)">
+          </div>
+          <div class="form-group">
+            <label>内容（自動抽出または直接入力 ・ AIがこの内容を参照して回答します）</label>
+            <textarea id="manualContent" rows="6" placeholder="ファイルをアップロードすると自動で読み取ります。手動でも入力できます。"></textarea>
+          </div>
+          <div class="form-group">
+            <label>📋 参照できる権限（複数選択）</label>
+            <div class="role-checks" id="manualRoleChecks"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn btn-success btn-sm" onclick="saveManual()">保存</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleAddManual()">キャンセル</button>
+          </div>
+        </div>
+        <div id="manualList"></div>
+      </div>
+
+      <!-- SURVEYS (Admin) -->
+      <div class="tab-content" id="tab-surveys">
+        <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
+          <span style="font-size:14px;font-weight:700">アンケート管理</span>
+          <button class="btn btn-primary btn-sm" onclick="toggleAddSurvey()">＋ 作成</button>
+        </div>
+        <!-- Create Survey Form -->
+        <div id="addSurveyForm" style="display:none" class="sq-form">
+          <div class="form-group"><label>タイトル *</label><input type="text" id="sqTitle" placeholder="5月研修会 参加確認"></div>
+          <div class="form-group"><label>説明</label><input type="text" id="sqDesc" placeholder="〇〇研修会への参加可否をお知らせください"></div>
+          <div class="form-group"><label>回答期限</label><input type="date" id="sqDeadline"></div>
+          <div class="form-group">
+            <label>対象者（複数選択）</label>
+            <div class="role-checks" id="sqRoleChecks"></div>
+          </div>
+          <div class="form-group">
+            <label>回答者の表示設定</label>
+            <div style="display:flex;gap:10px;margin-top:6px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:2px solid var(--border);border-radius:10px;flex:1;transition:all .15s" id="sqAnonLabel-named">
+                <input type="radio" name="sqAnon" value="named" checked onchange="updateAnonUI()">
+                <div>
+                  <div style="font-size:13px;font-weight:700">👤 実名回答</div>
+                  <div style="font-size:11px;color:var(--text-muted)">誰がどう答えたか管理者が確認できる</div>
+                </div>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:2px solid var(--border);border-radius:10px;flex:1;transition:all .15s" id="sqAnonLabel-anon">
+                <input type="radio" name="sqAnon" value="anon" onchange="updateAnonUI()">
+                <div>
+                  <div style="font-size:13px;font-weight:700">🔒 匿名回答</div>
+                  <div style="font-size:11px;color:var(--text-muted)">集計のみ表示・誰が答えたか分からない</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>質問</label>
+            <div id="sqQuestions"></div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addSurveyQuestion()">＋ 質問を追加</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button class="btn btn-success btn-sm" onclick="saveSurvey()">配信する</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleAddSurvey()">キャンセル</button>
+          </div>
+        </div>
+        <div id="adminSurveyList"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="tab-content" id="tab-settings">
+        <div style="display:flex;flex-direction:column;gap:13px">
+          <div style="padding:15px;background:var(--chat-bg);border-radius:10px">
+            <div style="font-weight:700;margin-bottom:10px">✨ Gemini AI 設定</div>
+            <div class="form-group">
+              <label>Gemini API キー</label>
+              <input type="password" id="adminGeminiKey" placeholder="AIzaSy...">
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Google AI Studio で取得したAPIキーを入力。入力後、マニュアルを参照した高精度な回答が可能になります。</p>
+            <button class="btn btn-primary btn-sm" onclick="saveGeminiKeyAdmin()">保存</button>
+          </div>
+          <div style="padding:15px;background:var(--chat-bg);border-radius:10px">
+            <div style="font-weight:700;margin-bottom:10px">🔒 セキュリティ設定</div>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;font-size:14px"><input type="checkbox" checked> 通信の暗号化（TLS）</label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;font-size:14px"><input type="checkbox" checked> セッションタイムアウト（30分）</label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox"> 二段階認証を強制</label>
+          </div>
+          <div style="padding:15px;background:#fff3e0;border-radius:10px;border:1px solid #ffe0b2">
+            <div style="font-weight:700;color:var(--warning);margin-bottom:8px">⚠️ データ管理</div>
+            <p style="font-size:13px;color:#555;margin-bottom:10px">メッセージは暗号化して保存されます。個人情報・医療情報の取り扱いに注意してください。</p>
+            <button class="btn btn-ghost btn-sm">データエクスポート</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD CHANGE MODAL -->
+<div class="modal-overlay" id="changePwModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span style="font-size:22px">🔑</span>
+      <h2>パスワード変更</h2>
+      <button class="modal-close" onclick="closeChangePw()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px">新しいパスワードは8文字以上を推奨します。</p>
+      <div class="form-group">
+        <label>現在のパスワード *</label>
+        <input type="password" id="pwCurrent" placeholder="現在のパスワードを入力">
+      </div>
+      <div class="form-group">
+        <label>新しいパスワード *</label>
+        <input type="password" id="pwNew" placeholder="8文字以上推奨" oninput="checkPwStrength(this.value)">
+        <div id="pwStrengthBar" style="margin-top:6px;height:4px;border-radius:4px;background:var(--border);overflow:hidden">
+          <div id="pwStrengthFill" style="height:100%;width:0%;transition:width .3s,background .3s"></div>
+        </div>
+        <div id="pwStrengthLabel" style="font-size:11px;color:var(--text-muted);margin-top:3px"></div>
+      </div>
+      <div class="form-group">
+        <label>新しいパスワード（確認） *</label>
+        <input type="password" id="pwConfirm" placeholder="もう一度入力">
+      </div>
+      <div id="pwError" style="color:var(--danger);font-size:13px;margin-bottom:10px"></div>
+      <button class="btn btn-primary" onclick="doChangePw()">パスワードを変更する</button>
+    </div>
+  </div>
+</div>
+
+<div class="img-viewer" id="imgViewer" onclick="closeImgViewer()">
+  <button class="img-viewer-close">✕</button>
+  <img id="viewerImg" src="" alt="">
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// PDF.js worker
+if(typeof pdfjsLib !== 'undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ===== MASTER DATA =====
+const ROLE_LABELS = {
+  admin:'システム管理者', doctor:'医師', manager:'管理者',
+  'office-clinic':'医院事務', 'nurse-clinic':'医院看護師', 'nurse-facility':'施設看護師',
+  'care-sako':'介護職員（サ高住）', 'care-kotaki':'介護職員（小多機）',
+  'care-houmon':'訪問介護職員', 'care-day':'デイサービス職員',
+  kyotaku:'居宅介護支援職員', board:'理事会',
+};
+const ALL_ROLES = Object.keys(ROLE_LABELS);
+
+const DEFAULT_USERS = [
+  {id:1,  name:'山田 義雄', email:'admin@aura-net.jp',        password:'admin123', role:'admin',         dept:'システム管理',           active:true},
+  {id:2,  name:'鈴木 一郎', email:'doctor@aura-net.jp',       password:'demo123',  role:'doctor',        dept:'内科・外科',             active:true},
+  {id:12, name:'加藤 誠',   email:'manager@aura-net.jp',      password:'demo123',  role:'manager',       dept:'施設管理者',             active:true},
+  {id:3,  name:'田中 明美', email:'office@aura-net.jp',       password:'demo123',  role:'office-clinic', dept:'医院事務',               active:true},
+  {id:4,  name:'佐藤 花子', email:'nurse-clinic@aura-net.jp', password:'demo123',  role:'nurse-clinic',  dept:'外来看護師',             active:true},
+  {id:5,  name:'伊藤 美咲', email:'nurse-facility@aura-net.jp',password:'demo123', role:'nurse-facility',dept:'施設看護師',             active:true},
+  {id:6,  name:'渡辺 健太', email:'care-sako@aura-net.jp',    password:'demo123',  role:'care-sako',     dept:'サービス付き高齢者住宅', active:true},
+  {id:7,  name:'松本 真理', email:'care-kotaki@aura-net.jp',  password:'demo123',  role:'care-kotaki',   dept:'小規模多機能',           active:true},
+  {id:8,  name:'高橋 拓哉', email:'care-houmon@aura-net.jp',  password:'demo123',  role:'care-houmon',   dept:'訪問介護',               active:true},
+  {id:9,  name:'中村 恵子', email:'care-day@aura-net.jp',     password:'demo123',  role:'care-day',      dept:'デイサービス',           active:true},
+  {id:10, name:'小林 俊介', email:'kyotaku@aura-net.jp',      password:'demo123',  role:'kyotaku',       dept:'居宅介護支援',           active:true},
+  {id:11, name:'木下 理事長',email:'board@aura-net.jp',       password:'demo123',  role:'board',         dept:'理事会',                 active:true},
+];
+
+// グループ定義（固定・自由作成なし）
+const CHANNELS = [
+  // ─── 全体 ───
+  {id:'all',          name:'法人全体連絡',          icon:'📢', desc:'全職員向けの重要なお知らせ・連絡事項',
+    group:null,      roles:['all']},
+  // ─── 管理職グループ ───
+  {id:'management',   name:'管理職',                icon:'👑', desc:'理事会・医師・管理者の連絡（機密）',
+    group:'mgmt',    roles:['admin','board','doctor','manager']},
+  // ─── 医院グループ ───
+  {id:'clinic',       name:'医院グループ',           icon:'🏥', desc:'医師・管理者・事務・看護師・居宅支援チーム',
+    group:'clinic',  roles:['admin','doctor','manager','office-clinic','nurse-clinic','kyotaku']},
+  {id:'clinic-ns',    name:'医院看護師グループ',     icon:'💉', desc:'医師・管理者・医院看護師の連携',
+    group:'clinic',  roles:['admin','doctor','manager','nurse-clinic']},
+  // ─── 施設グループ ───
+  {id:'facility-ns',  name:'施設看護師グループ',     icon:'🩺', desc:'医師・管理者・施設看護師の連携',
+    group:'facility',roles:['admin','doctor','manager','nurse-facility']},
+  {id:'sako',         name:'サービス付き高齢者住宅', icon:'🏠', desc:'サ高住チームの申し送り・連絡',
+    group:'facility',roles:['admin','manager','nurse-facility','care-sako']},
+  {id:'kotaki',       name:'小規模多機能',           icon:'⭐', desc:'小多機チームの申し送り・連絡',
+    group:'facility',roles:['admin','manager','nurse-facility','care-kotaki']},
+  {id:'houmon',       name:'訪問介護',               icon:'🚗', desc:'訪問介護チームのルート・連絡',
+    group:'facility',roles:['admin','manager','nurse-facility','care-houmon','kyotaku']},
+  {id:'day',          name:'デイサービス',           icon:'☀️', desc:'デイサービスチームのプログラム・連絡',
+    group:'facility',roles:['admin','manager','nurse-facility','care-day']},
+  {id:'kyotaku-ch',   name:'居宅介護支援',           icon:'📋', desc:'ケアマネ・居宅支援チームの連絡',
+    group:'facility',roles:['admin','manager','doctor','nurse-facility','kyotaku']},
+  // ─── システム管理 ───
+  {id:'admin-ch',     name:'システム管理者',         icon:'⚙️', desc:'システム管理・運用連絡',
+    group:null,      roles:['admin']},
+];
+
+const SAMPLE_MSGS = {
+  all:[
+    {userId:1,  text:'【重要】本日より感染対策強化期間に入ります。各部署でマニュアルに従った対応をお願いします。', time:'09:00', date:'今日'},
+    {userId:2,  text:'承知しました。医院でも手指消毒の徹底を指示します。', time:'09:15', date:'今日'},
+    {userId:10, text:'居宅支援でも利用者様へのご案内を実施します。', time:'09:20', date:'今日'},
+    {userId:12, text:'各事業所管理者の皆さん、本日の対応状況を夕方までにご報告ください。', time:'09:35', date:'今日'},
+  ],
+  management:[
+    {userId:11, text:'今月の収支を確認しました。各事業所管理者から運営状況の報告をお願いします。', time:'09:00', date:'今日'},
+    {userId:2,  text:'医院は外来患者数が前月比＋8%です。訪問診療の依頼も増加しています。', time:'09:20', date:'今日'},
+    {userId:12, text:'施設側は稼働率98%で推移しています。人員補充が急務です。', time:'09:35', date:'今日'},
+    {userId:1,  text:'採用については来週の管理職会議で協議しましょう。', time:'09:50', date:'今日'},
+  ],
+  clinic:[
+    {userId:2,  text:'本日の診察終了後にカンファレンスを行います。15分ほどお時間をいただけますか？', time:'10:00', date:'今日'},
+    {userId:4,  text:'了解です。参加します。', time:'10:05', date:'今日'},
+    {userId:3,  text:'私も参加します。議題を教えていただけますか？', time:'10:07', date:'今日'},
+    {userId:2,  text:'新しい訪問看護依頼の件と居宅支援との連携について話し合いたいです。', time:'10:09', date:'今日'},
+    {userId:10, text:'ぜひ。対象の方のケアプランも持参します。', time:'10:15', date:'今日'},
+    {userId:12, text:'会議室を14:30に押さえておきます。', time:'10:20', date:'今日'},
+  ],
+  'clinic-ns':[
+    {userId:4, text:'本日の外来患者様で、山田様（70代）の血糖値が高めでした。先生にご確認いただけますか？', time:'11:00', date:'今日'},
+    {userId:2, text:'確認しました。次回受診時に検査を追加します。経過を記録しておいてください。', time:'11:15', date:'今日'},
+    {userId:4, text:'承知しました。記録しておきます。', time:'11:18', date:'今日'},
+  ],
+  'facility-ns':[
+    {userId:5,  text:'鈴木先生、302号室の田中様のバイタルについてご相談があります。血圧が155/92mmHgと少し高めです。', time:'08:30', date:'今日'},
+    {userId:2,  text:'ありがとうございます。夕方の測定値を教えてください。変化があれば投薬を検討します。', time:'08:45', date:'今日'},
+    {userId:5,  text:'承知しました。17時頃に再測定します。', time:'08:50', date:'今日'},
+    {userId:12, text:'田中様、ご家族への連絡は私の方から行います。', time:'09:00', date:'今日'},
+  ],
+  sako:[
+    {userId:6,  text:'本日の申し送り：山本様が夜間不眠を訴えられていました。日中活動を増やす工夫が必要かもしれません。', time:'08:30', date:'今日'},
+    {userId:5,  text:'確認しました。医師に相談して対応を検討します。', time:'08:45', date:'今日'},
+    {userId:12, text:'必要であれば家族面談を設定します。', time:'08:55', date:'今日'},
+  ],
+  kotaki:[
+    {userId:7,  text:'今日の参加者は12名です。午後はカラオケを予定しています🎤', time:'09:00', date:'今日'},
+    {userId:5,  text:'田中様が少し体調が優れないようです。午前は休憩を多めに。', time:'09:30', date:'今日'},
+    {userId:12, text:'了解です。何かあれば連絡ください。', time:'09:40', date:'今日'},
+  ],
+  houmon:[
+    {userId:8,  text:'午前の訪問が終わりました。鈴木様宅は特段問題なし。次は14:00〜佐藤様です。', time:'11:45', date:'今日'},
+    {userId:10, text:'佐藤様、先週から食欲低下のご報告あり。訪問時に確認をお願いします。', time:'12:00', date:'今日'},
+    {userId:12, text:'佐藤様の件、記録後に私にも共有をお願いします。', time:'12:10', date:'今日'},
+  ],
+  day:[
+    {userId:9,  text:'本日のご利用者様は18名です。午後は折り紙・体操の予定です。', time:'09:00', date:'今日'},
+    {userId:5,  text:'木下様が本日初利用です。不安が強いかもしれないので気にかけてあげてください。', time:'09:15', date:'今日'},
+    {userId:12, text:'木下様のご家族から連絡があり、様子を夕方に聞かせてほしいとのことです。', time:'09:30', date:'今日'},
+  ],
+  'kyotaku-ch':[
+    {userId:10, text:'来月のサービス担当者会議の日程調整をお願いします。候補：5/15(木)・5/20(火)・5/22(木)', time:'14:00', date:'今日'},
+    {userId:2,  text:'5/20であれば参加できます。', time:'14:20', date:'今日'},
+    {userId:5,  text:'5/20 14:00〜でよろしければ調整します。', time:'14:25', date:'今日'},
+    {userId:12, text:'会場は会議室Aを確保します。', time:'14:30', date:'今日'},
+  ],
+  board:[
+    {userId:11, text:'第3四半期収支報告を確認しました。全体として良好ですが、訪問介護部門の人件費が若干高めです。', time:'10:00', date:'今日'},
+    {userId:1,  text:'承知しました。次回の理事会で詳しく報告いたします。', time:'10:30', date:'今日'},
+  ],
+  'admin-ch':[
+    {userId:1, text:'システムメンテナンスを本日22:00〜23:00に実施します。', time:'08:00', date:'今日'},
+  ],
+};
+
+const DEFAULT_MANUALS = [
+  {id:1, name:'感染対策マニュアル', category:'全職員共通', date:'2025-04-01', icon:'🦠', roles:['all'], content:'手洗いは流水で15秒以上。アルコール消毒は手全体に広げ乾燥まで。マスクは正しく装着。感染が疑われる場合は速やかに上長へ報告。隔離対応は感染対策委員会の指示に従う。'},
+  {id:2, name:'緊急時対応マニュアル', category:'全職員共通', date:'2025-03-15', icon:'🚨', roles:['all'], content:'①安全確認 ②119番通報（必要時）③上長・施設長報告 ④AED使用（心肺停止時）⑤利用者家族への連絡 ⑥ヒヤリハット報告書作成。AEDは各フロアのナースステーション横に設置。'},
+  {id:3, name:'介護記録作成ガイド', category:'介護部門', date:'2025-02-28', icon:'📝', roles:['admin','nurse-facility','care-sako','care-kotaki','care-houmon','care-day','kyotaku'], content:'5W1Hで客観的に記録。主観は「〜と思われる」と明記。バイタルは数値で正確に。利用者の言葉は「」でそのまま記録。当日中に完成。修正は二重線で日時・署名を添える。'},
+  {id:4, name:'ヒヤリハット報告手順', category:'全職員共通', date:'2025-01-20', icon:'⚠️', roles:['all'], content:'発生後24時間以内に所定フォームへ記入。上長への口頭報告も同時に実施。責任追及でなく再発防止が目的。積極的な報告を奨励します。'},
+  {id:5, name:'就業規則・人事規定', category:'人事・総務', date:'2025-04-01', icon:'📖', roles:['all'], content:'勤務：日勤8:30〜17:30、夜勤16:30〜翌9:00。有給は入職6ヶ月後から付与、申請は2週間前までに上長へ。育児・介護休暇あり。私的スマホ使用は休憩時間のみ。'},
+];
+
+const DEFAULT_SURVEYS = [
+  {
+    id:1, title:'5月研修会 参加確認', desc:'5月20日（火）14:00〜 感染対策研修会への参加可否をお知らせください。',
+    creator:1, deadline:'2025-05-10', targetRoles:['all'],
+    questions:[
+      {id:1, text:'研修会に参加できますか？', type:'attendance'},
+      {id:2, text:'オンライン参加を希望しますか？', type:'yesno'},
+      {id:3, text:'その他ご要望があればご記入ください', type:'text'},
+    ],
+    responses:{}, createdAt:'2025-04-29'
+  }
+];
+
+const AVATAR_COLORS = ['#2e7d5e','#c62828','#1565c0','#6a1b9a','#e65100','#00695c','#4527a0','#ad1457','#37474f','#558b2f','#0277bd'];
+
+// ===== STATE =====
+// バージョンが変わったらlocalStorageをリセット（ドメイン変更等に対応）
+const DATA_VERSION = 'v4';
+if(localStorage.getItem('vs_version') !== DATA_VERSION){
+  ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
+  localStorage.setItem('vs_version', DATA_VERSION);
+}
+
+let currentUser = null;
+let currentChannel = null;
+let users   = JSON.parse(localStorage.getItem('vs_users')   || 'null') || JSON.parse(JSON.stringify(DEFAULT_USERS));
+let messages= JSON.parse(localStorage.getItem('vs_msgs')    || 'null') || JSON.parse(JSON.stringify(SAMPLE_MSGS));
+let manuals = JSON.parse(localStorage.getItem('vs_manuals') || 'null') || JSON.parse(JSON.stringify(DEFAULT_MANUALS));
+let surveys = JSON.parse(localStorage.getItem('vs_surveys') || 'null') || JSON.parse(JSON.stringify(DEFAULT_SURVEYS));
+let pendingFiles = [];
+let sqQuestionCount = 0;
+
+// ===== UTILS =====
+function saveData(){ localStorage.setItem('vs_users',JSON.stringify(users)); localStorage.setItem('vs_msgs',JSON.stringify(messages)); localStorage.setItem('vs_manuals',JSON.stringify(manuals)); localStorage.setItem('vs_surveys',JSON.stringify(surveys)); }
+function getUser(id){ return users.find(u=>u.id===id); }
+function avatarColor(id){ return AVATAR_COLORS[(id-1)%AVATAR_COLORS.length]; }
+function initials(n){ if(!n)return'?'; const p=n.trim().split(/\s+/); return p.length>=2?p[0][0]+p[1][0]:n.substring(0,2); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function showToast(msg,ms=2500){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),ms); }
+function dmKey(a,b){ return 'dm_'+Math.min(a,b)+'_'+Math.max(a,b); }
+function canAccess(ch,role){ return ch.roles.includes('all')||ch.roles.includes(role); }
+function nowTime(){ return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}); }
+function canAccessManual(m){ if(!currentUser)return false; if(m.roles.includes('all'))return true; return m.roles.includes(currentUser.role)||m.roles.includes('admin'); }
+
+// ===== LOGIN =====
+function fillDemo(e,p){
+  document.getElementById('loginEmail').value=e;
+  document.getElementById('loginPassword').value=p;
+  document.getElementById('loginError').textContent='';
+}
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  const user=users.find(u=>u.email===email&&u.password===pw);
+  if(!user){document.getElementById('loginError').textContent='メールアドレスまたはパスワードが正しくありません';return;}
+  if(!user.active){document.getElementById('loginError').textContent='このアカウントは無効化されています。管理者にお問い合わせください。';return;}
+  currentUser=user;
+  localStorage.setItem('vs_session', JSON.stringify(user.id));
+  startApp();
+}
+function doLogout(){ currentUser=null; currentChannel=null; localStorage.removeItem('vs_session'); document.getElementById('app').style.display='none'; document.getElementById('loginScreen').style.display='flex'; showToast('ログアウトしました'); }
+
+// ===== APP =====
+function startApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  const u=currentUser;
+  document.getElementById('sidebarName').textContent=u.name;
+  document.getElementById('sidebarDept').textContent=u.dept||ROLE_LABELS[u.role];
+  document.getElementById('sidebarRole').textContent=ROLE_LABELS[u.role];
+  document.getElementById('sidebarAvatar').style.background=avatarColor(u.id);
+  document.getElementById('avatarInitial').textContent=initials(u.name);
+  document.getElementById('adminBtn').style.display=u.role==='admin'?'block':'none';
+  const key=localStorage.getItem('gemini_api_key')||'';
+  document.getElementById('geminiKeyInput').value=key;
+  document.getElementById('adminGeminiKey').value=key;
+  if(key)document.getElementById('botKeyBar').style.display='none';
+  renderChannels(); renderDMList(); updateSurveyBadge();
+  const first=CHANNELS.find(c=>canAccess(c,u.role));
+  if(first)selectChannel(first.id);
+}
+
+// ===== SIDEBAR =====
+function renderChannels(){
+  const list=document.getElementById('channelList');
+  list.innerHTML='';
+  CHANNELS.forEach(ch=>{
+    if(!canAccess(ch,currentUser.role))return;
+    const el=document.createElement('div');
+    el.className='channel-item'; el.id='ch-'+ch.id; el.onclick=()=>selectChannel(ch.id);
+    let gt='';
+    if(ch.group==='clinic') gt='<span class="group-tag group-clinic">医院</span>';
+    if(ch.group==='facility')gt='<span class="group-tag group-facility">施設</span>';
+    if(ch.group==='mgmt')   gt='<span class="group-tag group-mgmt">管理職</span>';
+    el.innerHTML=`<span class="ch-icon">${ch.icon}</span><span class="ch-name">${ch.name}</span>${gt}`;
+    list.appendChild(el);
+  });
+}
+function renderDMList(){
+  const list=document.getElementById('dmList'); list.innerHTML='';
+  users.filter(u=>u.active&&u.id!==currentUser.id).forEach(u=>{
+    const el=document.createElement('div');
+    el.className='dm-item'; el.id='dm-'+u.id; el.onclick=()=>selectDM(u.id);
+    el.innerHTML=`<div class="dm-avatar-sm" style="background:${avatarColor(u.id)}">${initials(u.name)}<div class="dm-online"></div></div>
+      <div style="flex:1;overflow:hidden"><div class="dm-name">${escHtml(u.name)}</div><div class="dm-role-small">${ROLE_LABELS[u.role]||''}</div></div>`;
+    list.appendChild(el);
+  });
+}
+function setActiveItem(id){
+  document.querySelectorAll('.channel-item,.dm-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById(id); if(el)el.classList.add('active');
+}
+function selectChannel(chId){
+  currentChannel={type:'channel',id:chId};
+  const ch=CHANNELS.find(c=>c.id===chId); if(!ch)return;
+  setActiveItem('ch-'+chId);
+  document.getElementById('chatChannelIcon').textContent=ch.icon;
+  document.getElementById('chatChannelName').textContent=ch.name;
+  let desc=ch.desc;
+  if(ch.group==='clinic') desc+=' <span class="group-tag group-clinic">医院グループ</span>';
+  if(ch.group==='facility')desc+=' <span class="group-tag group-facility">施設グループ</span>';
+  if(ch.group==='mgmt')   desc+=' <span class="group-tag group-mgmt">管理職グループ</span>';
+  document.getElementById('chatChannelDesc').innerHTML=desc;
+  document.getElementById('mobileTitle').textContent=ch.name;
+  showChatView(); renderMessages(); closeSidebar();
+}
+function selectDM(targetId){
+  const key=dmKey(currentUser.id,targetId);
+  currentChannel={type:'dm',id:key,targetId};
+  const target=getUser(targetId);
+  setActiveItem('dm-'+targetId);
+  document.getElementById('chatChannelIcon').textContent='💬';
+  document.getElementById('chatChannelName').textContent=target.name;
+  document.getElementById('chatChannelDesc').innerHTML=`<span class="dm-header-badge"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block"></span> DM ・ ${ROLE_LABELS[target.role]}</span>`;
+  document.getElementById('mobileTitle').textContent=target.name;
+  showChatView(); renderMessages(); closeSidebar();
+}
+function showChatView(){
+  document.getElementById('chatView').style.display='flex';
+  document.getElementById('surveyView').style.display='none';
+}
+function showSurveyView(){
+  setActiveItem('sidebar-survey');
+  currentChannel=null;
+  document.getElementById('chatChannelIcon').textContent='🗳️';
+  document.getElementById('chatChannelName').textContent='アンケート一覧';
+  document.getElementById('chatChannelDesc').textContent='回答してください';
+  document.getElementById('chatView').style.display='none';
+  document.getElementById('surveyView').style.display='block';
+  renderSurveyUser(); closeSidebar();
+}
+
+// ===== MESSAGES =====
+function renderMessages(){
+  const container=document.getElementById('messages');
+  const key=currentChannel.id;
+  const msgs=messages[key]||[];
+  if(msgs.length===0){
+    const isDM=currentChannel.type==='dm';
+    const target=isDM?getUser(currentChannel.targetId):null;
+    container.innerHTML=`<div style="text-align:center;padding:50px 20px;color:var(--text-muted)">
+      <div style="font-size:44px;margin-bottom:12px">${isDM?'💬':'📣'}</div>
+      <p style="font-size:15px;font-weight:700;color:#555">${isDM?target.name+'さんへのメッセージ':'最初のメッセージを送ろう'}</p>
+    </div>`; return;
+  }
+  container.innerHTML='';
+  let prevUId=null,prevDate=null;
+  msgs.forEach(msg=>{
+    const isOwn=msg.userId===currentUser.id;
+    const user=getUser(msg.userId)||{name:'不明',id:0,role:''};
+    if(msg.date!==prevDate){
+      const d=document.createElement('div'); d.className='msg-date-divider';
+      d.innerHTML=`<span>${msg.date}</span>`; container.appendChild(d); prevDate=msg.date;
+    }
+    const showAv=!isOwn&&msg.userId!==prevUId;
+    const row=document.createElement('div'); row.className='msg-row '+(isOwn?'own':'other');
+    let avHtml=!isOwn?`<div class="msg-avatar-chat ${showAv?'':'hidden'}" style="background:${avatarColor(user.id)}">${initials(user.name)}</div>`:'';
+    let bContent='';
+    if(msg.type==='image') bContent=`<img src="${msg.src}" class="image-msg" onclick="viewImage('${msg.src}')" alt="画像">`;
+    else if(msg.type==='file') bContent=`<div class="file-msg">📄 ${escHtml(msg.filename)} <span style="font-size:11px;color:#888">${msg.size||''}</span></div>`;
+    else bContent=escHtml(msg.text);
+    const senderHtml=(!isOwn&&showAv)?`<div class="msg-sender">${escHtml(user.name)} · ${ROLE_LABELS[user.role]||''}</div>`:'';
+    row.innerHTML=`${avHtml}<div class="msg-content">${senderHtml}<div class="bubble">${bContent}</div><div class="msg-meta"><span>${msg.time}</span>${isOwn?'<span class="read-indicator">✓✓</span>':''}</div></div>`;
+    container.appendChild(row); prevUId=msg.userId;
+  });
+  container.scrollTop=container.scrollHeight;
+}
+
+// ===== SEND =====
+function handleInputKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function sendMessage(){
+  if(!currentChannel){showToast('チャンネルを選択してください');return;}
+  const input=document.getElementById('msgInput');
+  const text=input.value.trim();
+  const key=currentChannel.id;
+  if(!messages[key])messages[key]=[];
+  if(pendingFiles.length>0){ pendingFiles.forEach(f=>messages[key].push({userId:currentUser.id,time:nowTime(),date:'今日',...f})); pendingFiles=[]; }
+  if(text){ messages[key].push({userId:currentUser.id,text,time:nowTime(),date:'今日'}); input.value=''; input.style.height='auto'; }
+  saveData(); renderMessages();
+}
+function triggerAttach(){ document.getElementById('fileInput').click(); }
+function triggerPhoto(){ document.getElementById('photoInput').click(); }
+function handleFile(e){
+  Array.from(e.target.files).forEach(file=>{
+    if(file.type.startsWith('image/')){
+      const r=new FileReader(); r.onload=ev=>{pendingFiles.push({type:'image',src:ev.target.result});sendMessage();}; r.readAsDataURL(file);
+    }else{ pendingFiles.push({type:'file',filename:file.name,size:fmtSize(file.size)});sendMessage(); }
+  }); e.target.value='';
+}
+function fmtSize(b){ if(b<1024)return b+'B'; if(b<1048576)return(b/1024).toFixed(1)+'KB'; return(b/1048576).toFixed(1)+'MB'; }
+function viewImage(src){ document.getElementById('viewerImg').src=src; document.getElementById('imgViewer').classList.add('open'); }
+function closeImgViewer(){ document.getElementById('imgViewer').classList.remove('open'); }
+
+// ===== SIDEBAR MOBILE =====
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+
+// ===== BOT =====
+function toggleBot(){ document.getElementById('botPanel').classList.toggle('hidden'); }
+function saveGeminiKey(){ const k=document.getElementById('geminiKeyInput').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); document.getElementById('adminGeminiKey').value=k; document.getElementById('botKeyBar').style.display='none'; showToast('Gemini APIキーを設定しました ✨'); }
+function saveGeminiKeyAdmin(){ const k=document.getElementById('adminGeminiKey').value.trim(); if(!k)return showToast('APIキーを入力してください'); localStorage.setItem('gemini_api_key',k); document.getElementById('geminiKeyInput').value=k; document.getElementById('botKeyBar').style.display='none'; showToast('Gemini APIキーを保存しました ✨'); }
+
+function buildManualContext(){
+  return manuals.filter(m=>canAccessManual(m)).map(m=>`【${m.name}】\n${m.content}`).join('\n\n');
+}
+
+async function callGeminiAPI(q){
+  const apiKey=localStorage.getItem('gemini_api_key'); if(!apiKey)return null;
+  const ctx=buildManualContext();
+  const prompt=`あなたは医療法人「AURA NET」の業務アシスタントAIです。
+以下の法人マニュアルを参照して、職員の質問に正確・簡潔に日本語で答えてください。
+マニュアルに記載がない場合は「マニュアルに記載がありません。担当者にご確認ください。」と答えてください。
+
+【法人マニュアル】
+${ctx}
+
+【質問】${q}`;
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    if(!res.ok){const err=await res.json();return`⚠️ APIエラー：${err.error?.message||res.statusText}`;}
+    const data=await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text||'回答を取得できませんでした。';
+  }catch(e){return`⚠️ 通信エラー：${e.message}`;}
+}
+
+const FALLBACK_KB = {
+  '感染':'手洗いは流水で15秒以上。アルコール消毒は手全体に広げ乾燥まで。感染が疑われる場合は速やかに上長へ報告してください。',
+  '緊急':'①安全確認 ②119番通報 ③上長報告 ④AED使用（心肺停止時）⑤家族への連絡 の順で対応します。AEDは各フロアのナースステーション横にあります。',
+  'AED':'AEDは各フロアのナースステーション横に設置されています。電源を入れると音声ガイドに従ってください。',
+  '介護記録':'5W1H（いつ・どこで・誰が・何を・なぜ・どのように）で客観的に記録。主観は「〜と思われる」と明記。当日中に完成。',
+  'ヒヤリハット':'発生後24時間以内に所定フォームへ記入し、上長へも口頭報告。責任追及でなく再発防止が目的です。',
+  '有給':'有給休暇は入職6ヶ月後から付与。申請は2週間前までに上長へ。育児・介護休暇制度もあります。',
+};
+
+async function askBot(q){
+  if(!q||!q.trim())return;
+  document.getElementById('botInput').value='';
+  const bm=document.getElementById('botMessages');
+  const qDiv=document.createElement('div'); qDiv.className='bot-msg user-q'; qDiv.textContent=q; bm.appendChild(qDiv);
+  const typing=document.createElement('div'); typing.className='bot-msg bot-a';
+  typing.innerHTML='<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+  bm.appendChild(typing); bm.scrollTop=bm.scrollHeight;
+  const apiKey=localStorage.getItem('gemini_api_key');
+  let answer;
+  if(apiKey){ answer=await callGeminiAPI(q); }
+  else{
+    await new Promise(r=>setTimeout(r,700));
+    answer=null;
+    for(const[kw,ans]of Object.entries(FALLBACK_KB)){if(q.includes(kw)){answer=ans;break;}}
+    if(!answer){ for(const m of manuals){if(canAccessManual(m)&&q.includes(m.name.slice(0,3))){answer=`📄「${m.name}」より：\n${m.content}`;break;}} }
+    if(!answer)answer=`「${q}」についてはGemini APIキーを設定するとより詳細に回答できます。\nキーは右上の⚙️管理パネル > 設定から入力してください。`;
+  }
+  bm.removeChild(typing);
+  const aDiv=document.createElement('div'); aDiv.className='bot-msg bot-a';
+  aDiv.innerHTML=`<div class="bot-label">✨ AURA NET AI${apiKey?' (Gemini)':''}</div>${escHtml(answer)}`;
+  bm.appendChild(aDiv); bm.scrollTop=bm.scrollHeight;
+}
+
+// ===== PDF / WORD EXTRACTION =====
+async function extractPDF(file){
+  const ab=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const tc=await page.getTextContent();
+    text+=tc.items.map(it=>it.str).join(' ')+'\n';
+  }
+  return text.trim();
+}
+async function extractDOCX(file){
+  const ab=await file.arrayBuffer();
+  const result=await mammoth.extractRawText({arrayBuffer:ab});
+  return result.value.trim();
+}
+
+function handleDragOver(e){ e.preventDefault(); document.getElementById('uploadArea').classList.add('drag'); }
+function handleDrop(e){ e.preventDefault(); document.getElementById('uploadArea').classList.remove('drag'); if(e.dataTransfer.files.length>0)processManualFile(e.dataTransfer.files[0]); }
+function handleManualFile(e){ if(e.target.files.length>0)processManualFile(e.target.files[0]); }
+
+async function processManualFile(file){
+  const name=file.name; const ext=name.split('.').pop().toLowerCase();
+  document.getElementById('uploadFileName').textContent='読み取り中... '+name;
+  try{
+    let text='';
+    if(ext==='pdf') text=await extractPDF(file);
+    else if(ext==='docx'||ext==='doc') text=await extractDOCX(file);
+    else{showToast('PDF または Word(.docx)ファイルを選択してください');return;}
+    document.getElementById('manualContent').value=text;
+    document.getElementById('uploadFileName').textContent='✅ 読み取り完了：'+name;
+    if(!document.getElementById('manualName').value) document.getElementById('manualName').value=name.replace(/\.(pdf|docx|doc)$/i,'');
+    showToast('ファイルの内容を読み取りました');
+  }catch(e){
+    document.getElementById('uploadFileName').textContent='⚠️ 読み取りエラー：'+e.message;
+    showToast('読み取りに失敗しました。手動で入力してください。');
+  }
+}
+
+// ===== ROLE CHECKBOXES (for manuals & surveys) =====
+function buildRoleChecks(containerId, defaultAll=true){
+  const el=document.getElementById(containerId); el.innerHTML='';
+  const allLabel=document.createElement('label'); allLabel.className='role-check-label';
+  allLabel.innerHTML=`<input type="checkbox" value="all" ${defaultAll?'checked':''} onchange="handleAllCheck(this,'${containerId}')"><span>全員</span>`;
+  el.appendChild(allLabel);
+  ALL_ROLES.forEach(r=>{
+    const label=document.createElement('label'); label.className='role-check-label';
+    label.innerHTML=`<input type="checkbox" value="${r}" ${defaultAll?'disabled checked':''}><span>${ROLE_LABELS[r]}</span>`;
+    el.appendChild(label);
+  });
+}
+function handleAllCheck(cb, containerId){
+  const el=document.getElementById(containerId);
+  el.querySelectorAll('input[type=checkbox]:not([value=all])').forEach(c=>{
+    c.checked=cb.checked; c.disabled=cb.checked;
+  });
+}
+function getCheckedRoles(containerId){
+  const el=document.getElementById(containerId);
+  const allCb=el.querySelector('input[value=all]');
+  if(allCb&&allCb.checked)return['all'];
+  return Array.from(el.querySelectorAll('input:checked')).map(c=>c.value);
+}
+
+// ===== CSV IMPORT =====
+
+// MoneyForward・freee・一般HR CSVの列名候補
+const CSV_COL_MAP = {
+  name:    ['氏名','名前','姓名','氏名（漢字）','従業員名','社員名','フルネーム','full_name','name'],
+  sei:     ['姓','苗字','last_name'],
+  mei:     ['名','first_name'],
+  email:   ['メールアドレス','メール','email','e-mail','mail','メールアドレス（会社）','会社メール'],
+  dept:    ['部門','部署','所属','所属部門','部門名','グループ','チーム','department'],
+  role:    ['職種','役職','職位','雇用形態','position','job_title','role'],
+  phone:   ['電話番号','携帯','携帯電話','TEL','tel','phone','mobile'],
+  empno:   ['従業員番号','社員番号','ID','employee_id','emp_no'],
+};
+
+// 職種キーワード → role値のマッピング
+const ROLE_KEYWORD_MAP = [
+  {kws:['医師','ドクター','Dr','doctor'],      role:'doctor'},
+  {kws:['事務','clerk','office','受付'],        role:'office-clinic'},
+  {kws:['医院看護','外来看護','clinic nurse'],  role:'nurse-clinic'},
+  {kws:['施設看護','facility nurse'],           role:'nurse-facility'},
+  {kws:['サ高住','サービス付き','サ高'],        role:'care-sako'},
+  {kws:['小多機','小規模多機能'],               role:'care-kotaki'},
+  {kws:['訪問介護','ホームヘルパー','ヘルパー'],role:'care-houmon'},
+  {kws:['デイサービス','通所','day'],           role:'care-day'},
+  {kws:['居宅','ケアマネ','介護支援'],          role:'kyotaku'},
+  {kws:['理事','board','役員'],                 role:'board'},
+  {kws:['管理者','admin','システム'],           role:'admin'},
+  {kws:['介護','ケア','care'],                  role:'care-sako'}, // fallback
+  {kws:['看護','nurse'],                        role:'nurse-clinic'}, // fallback
+];
+
+let csvParsed = [];   // [{row object}]
+let csvHeaders = [];  // column header strings
+
+function handleCsvDragOver(e){ e.preventDefault(); document.getElementById('csvUploadArea').classList.add('drag'); }
+function handleCsvDrop(e){ e.preventDefault(); document.getElementById('csvUploadArea').classList.remove('drag'); if(e.dataTransfer.files[0])readCsvFile(e.dataTransfer.files[0]); }
+function handleCsvFile(e){ if(e.target.files[0])readCsvFile(e.target.files[0]); e.target.value=''; }
+
+function readCsvFile(file){
+  document.getElementById('csvFileName').textContent = '読み込み中... ' + file.name;
+  const reader = new FileReader();
+  // まずUTF-8で試み、文字化けしたらShift-JISで再読み込み
+  reader.onload = function(e){
+    let text = e.target.result;
+    if(containsMojibake(text)){
+      const r2 = new FileReader();
+      r2.onload = function(e2){ parseCsv(e2.target.result, file.name); };
+      r2.readAsText(file, 'Shift_JIS');
+    } else {
+      parseCsv(text, file.name);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function containsMojibake(text){
+  // 文字化けの典型パターン（Shift-JISをUTF-8として読んだ場合）
+  return /[�]/.test(text) || (text.includes('ãã') || text.includes('縺'));
+}
+
+function parseCsv(text, filename){
+  // BOM除去
+  text = text.replace(/^﻿/, '');
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if(lines.length < 2){ showToast('CSVにデータがありません（ヘッダー行＋1行以上必要）'); return; }
+
+  csvHeaders = parseCsvLine(lines[0]);
+  csvParsed = lines.slice(1).filter(l=>l.trim()).map(line => {
+    const vals = parseCsvLine(line);
+    const obj = {};
+    csvHeaders.forEach((h,i) => obj[h] = (vals[i]||'').trim());
+    return obj;
+  }).filter(row => Object.values(row).some(v=>v)); // 空行除去
+
+  document.getElementById('csvFileName').textContent = `✅ ${filename}（${csvParsed.length}行）`;
+  buildMappingUI();
+  document.getElementById('csvMapping').style.display = 'block';
+  document.getElementById('csvPreview').style.display = 'none';
+}
+
+function parseCsvLine(line){
+  const res = [];
+  let cur = '', inQ = false;
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(ch==='"'){ inQ=!inQ; continue; }
+    if(ch===','&&!inQ){ res.push(cur); cur=''; continue; }
+    cur+=ch;
+  }
+  res.push(cur);
+  return res;
+}
+
+function buildMappingUI(){
+  const grid = document.getElementById('csvMappingGrid');
+  grid.innerHTML = '';
+  const fields = [
+    {key:'name',  label:'👤 氏名 *',       required:true},
+    {key:'sei',   label:'👤 姓（別列の場合）', required:false},
+    {key:'mei',   label:'👤 名（別列の場合）', required:false},
+    {key:'email', label:'📧 メールアドレス *', required:true},
+    {key:'dept',  label:'🏢 所属部門',      required:false},
+    {key:'role',  label:'🎯 職種・役職',    required:false},
+    {key:'phone', label:'📱 電話番号',      required:false},
+    {key:'empno', label:'🔢 従業員番号',    required:false},
+  ];
+  fields.forEach(f => {
+    const auto = autoDetectCol(f.key);
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:${f.required?'var(--text-primary)':'var(--text-muted)'}">${f.label}</label>
+      <select id="map-${f.key}" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+        <option value="">─ 使用しない ─</option>
+        ${csvHeaders.map(h=>`<option value="${escHtml(h)}" ${h===auto?'selected':''}>${escHtml(h)}</option>`).join('')}
+      </select>`;
+    grid.appendChild(div);
+  });
+}
+
+function autoDetectCol(fieldKey){
+  const candidates = CSV_COL_MAP[fieldKey] || [];
+  for(const h of csvHeaders){
+    const hl = h.toLowerCase().replace(/\s/g,'');
+    for(const c of candidates){
+      if(hl===c.toLowerCase().replace(/\s/g,'') || hl.includes(c.toLowerCase())) return h;
+    }
+  }
+  return '';
+}
+
+function getMapping(){
+  return {
+    name:  document.getElementById('map-name')?.value,
+    sei:   document.getElementById('map-sei')?.value,
+    mei:   document.getElementById('map-mei')?.value,
+    email: document.getElementById('map-email')?.value,
+    dept:  document.getElementById('map-dept')?.value,
+    role:  document.getElementById('map-role')?.value,
+    phone: document.getElementById('map-phone')?.value,
+    empno: document.getElementById('map-empno')?.value,
+  };
+}
+
+function guessRole(roleText){
+  if(!roleText) return null;
+  const t = roleText.toLowerCase();
+  for(const {kws, role} of ROLE_KEYWORD_MAP){
+    if(kws.some(k => t.includes(k.toLowerCase()))) return role;
+  }
+  return null;
+}
+
+function buildUserFromRow(row, map){
+  let name = '';
+  if(map.sei && map.mei && row[map.sei] && row[map.mei]){
+    name = (row[map.sei]||'').trim() + ' ' + (row[map.mei]||'').trim();
+  } else if(map.name && row[map.name]){
+    name = row[map.name].trim();
+  }
+  // 全角スペースの正規化
+  name = name.replace(/　/g, ' ').replace(/\s+/,' ').trim();
+
+  const email = (map.email ? row[map.email] : '').trim().toLowerCase();
+  const dept  = (map.dept  ? row[map.dept]  : '').trim();
+  const phone = (map.phone ? row[map.phone] : '').trim();
+  const roleText = map.role ? row[map.role] : '';
+  const role = guessRole(roleText) || document.getElementById('csvDefaultRole').value;
+  const pw   = document.getElementById('csvDefaultPw').value || 'Auranet2025!';
+
+  const errors = [];
+  if(!name) errors.push('氏名なし');
+  if(!email || !email.includes('@')) errors.push('メール無効');
+  if(users.find(u=>u.email===email)) errors.push('メール重複');
+
+  return { name, email, dept, phone, role, pw, errors, roleSource: roleText };
+}
+
+function showCsvPreview(){
+  const map = getMapping();
+  if(!map.name && !(map.sei&&map.mei)){ showToast('氏名の列を選択してください'); return; }
+  if(!map.email){ showToast('メールアドレスの列を選択してください'); return; }
+
+  const rows = csvParsed.map(r => buildUserFromRow(r, map));
+  document.getElementById('csvPreviewCount').textContent = rows.length;
+
+  const tbody = document.getElementById('csvPreviewBody');
+  tbody.innerHTML = rows.map((r,i) => {
+    const hasError = r.errors.length > 0;
+    return `<tr style="${hasError?'background:#fff5f5':''}">
+      <td style="color:var(--text-muted)">${i+1}</td>
+      <td style="font-weight:600">${escHtml(r.name)||'─'}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${escHtml(r.email)||'─'}</td>
+      <td>${ROLE_LABELS[r.role]||r.role}${r.roleSource?`<br><span style="font-size:10px;color:#aaa">(${escHtml(r.roleSource)})</span>`:''}</td>
+      <td style="font-size:12px">${escHtml(r.dept)||'─'}</td>
+      <td>${hasError?`<span style="color:var(--danger);font-size:12px">⚠️ ${r.errors.join(', ')}</span>`:'<span style="color:var(--success);font-size:12px">✅ OK</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('csvMapping').style.display = 'none';
+  document.getElementById('csvPreview').style.display  = 'block';
+}
+
+function importCsvUsers(){
+  const map = getMapping();
+  const rows = csvParsed.map(r => buildUserFromRow(r, map));
+  const valid = rows.filter(r => r.errors.length === 0);
+  const skip  = rows.length - valid.length;
+
+  valid.forEach(r => {
+    users.push({
+      id: Date.now() + Math.random(),
+      name: r.name,
+      email: r.email,
+      password: r.pw,
+      role: r.role,
+      dept: r.dept || ROLE_LABELS[r.role],
+      phone: r.phone,
+      active: true,
+    });
+  });
+  saveData();
+  renderUserTable();
+  renderDMList();
+
+  document.getElementById('csvPreview').style.display = 'none';
+  document.getElementById('csvMapping').style.display = 'none';
+  document.getElementById('csvFileName').textContent = '';
+  csvParsed = []; csvHeaders = [];
+
+  const msg = `✅ ${valid.length}名を登録しました` + (skip>0?`（${skip}名スキップ）`:'');
+  showToast(msg, 3500);
+  switchTab('users');
+}
+
+function downloadCsvTemplate(){
+  const header = '氏名,メールアドレス,所属部門,職種,電話番号';
+  const rows = [
+    '山田 太郎,yamada@aura-net.jp,外来,医師,090-0000-0001',
+    '佐藤 花子,sato@aura-net.jp,医院事務,事務,090-0000-0002',
+    '田中 美咲,tanaka@aura-net.jp,訪問介護,訪問介護,090-0000-0003',
+  ];
+  const csv = '﻿' + [header,...rows].join('\n'); // BOM付きUTF-8
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'VILLAGE_Square_職員テンプレート.csv';
+  a.click();
+}
+
+// ===== ADMIN =====
+function openAdmin(){
+  if(currentUser.role!=='admin')return;
+  renderUserTable(); renderManualList(); renderAdminSurveyList(); buildRoleChecks('manualRoleChecks',true); buildRoleChecks('sqRoleChecks',true);
+  document.getElementById('adminModal').classList.add('open'); switchTab('users');
+}
+function closeAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
+function switchTab(tab){
+  const tabs=['users','adduser','manuals','surveys','settings'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===tab));
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+// USERS
+function renderUserTable(filter=''){
+  const fl=filter.toLowerCase();
+  const filtered=users.filter(u=>u.name.toLowerCase().includes(fl)||u.email.toLowerCase().includes(fl));
+  document.getElementById('userCount').textContent=`${filtered.length}名`;
+  document.getElementById('userTableBody').innerHTML=filtered.map(u=>`
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar" style="width:27px;height:27px;font-size:11px;background:${avatarColor(u.id)}">${initials(u.name)}</div>
+        <span style="font-weight:600">${escHtml(u.name)}</span></div></td>
+      <td>${ROLE_LABELS[u.role]||u.role}</td>
+      <td style="color:var(--text-muted);font-size:12px">${escHtml(u.email)}</td>
+      <td><span class="status-badge ${u.active?'status-active':'status-inactive'}">${u.active?'有効':'無効'}</span></td>
+      <td><div style="display:flex;gap:5px">
+        ${u.active?`<button class="btn btn-sm btn-danger" onclick="toggleUserActive(${u.id},false)">停止</button>`:`<button class="btn btn-sm btn-success" onclick="toggleUserActive(${u.id},true)">有効化</button>`}
+        ${u.id!==currentUser.id?`<button class="btn btn-sm btn-ghost" onclick="deleteUser(${u.id})">削除</button>`:''}
+      </div></td>
+    </tr>`).join('');
+}
+function filterUsers(){ renderUserTable(document.getElementById('userSearch').value); }
+function toggleUserActive(id,active){ const u=users.find(u=>u.id===id);if(!u)return; u.active=active;saveData();renderUserTable(document.getElementById('userSearch').value);renderDMList();showToast(`${u.name}のアクセスを${active?'有効化':'停止'}しました`); }
+function deleteUser(id){ if(!confirm('この職員を削除しますか？'))return; users=users.filter(u=>u.id!==id);saveData();renderUserTable(document.getElementById('userSearch').value);renderDMList();showToast('職員を削除しました'); }
+function addUser(){
+  const name=document.getElementById('newName').value.trim();
+  const email=document.getElementById('newEmail').value.trim();
+  const pw=document.getElementById('newPassword').value;
+  const role=document.getElementById('newRole').value;
+  const dept=document.getElementById('newDept').value.trim();
+  if(!name||!email||!pw){showToast('必須項目を入力してください');return;}
+  if(users.find(u=>u.email===email)){showToast('このメールは既に登録されています');return;}
+  users.push({id:Date.now(),name,email,password:pw,role,dept:dept||ROLE_LABELS[role],active:true});
+  saveData();showToast(`${name}を登録しました`);
+  ['newName','newEmail','newPassword','newDept'].forEach(id=>document.getElementById(id).value='');
+  switchTab('users');renderUserTable();renderDMList();
+}
+
+// MANUALS
+function toggleAddManual(){ const f=document.getElementById('addManualForm'); f.style.display=f.style.display==='none'?'block':'none'; }
+function renderManualList(){
+  const list=document.getElementById('manualList');
+  list.innerHTML=manuals.map(m=>{
+    const roleDisplay=m.roles.includes('all')?'<span class="role-chip">全員</span>':m.roles.map(r=>`<span class="role-chip">${ROLE_LABELS[r]||r}</span>`).join('');
+    return `<div class="manual-item">
+      <div class="m-icon">${m.icon||'📄'}</div>
+      <div class="m-info">
+        <div class="m-name">${escHtml(m.name)}</div>
+        <div class="m-meta">${m.category} ・ ${m.date}</div>
+        <div class="m-roles">${roleDisplay}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="deleteManual(${m.id})">削除</button>
+    </div>`;
+  }).join('')||'<p style="color:var(--text-muted);text-align:center;padding:20px">マニュアルがありません</p>';
+}
+function saveManual(){
+  const name=document.getElementById('manualName').value.trim();
+  const category=document.getElementById('manualCategory').value;
+  const content=document.getElementById('manualContent').value.trim();
+  const roles=getCheckedRoles('manualRoleChecks');
+  if(!name)return showToast('マニュアル名を入力してください');
+  if(!content)return showToast('内容を入力してください');
+  if(roles.length===0)return showToast('参照権限を選択してください');
+  manuals.push({id:Date.now(),name,category,date:new Date().toISOString().slice(0,10),icon:'📄',roles,content});
+  saveData();renderManualList();
+  document.getElementById('addManualForm').style.display='none';
+  ['manualName','manualContent'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('uploadFileName').textContent='';
+  showToast(`「${name}」を登録しました。AIが参照します。`);
+}
+function deleteManual(id){ if(!confirm('このマニュアルを削除しますか？'))return; manuals=manuals.filter(m=>m.id!==id);saveData();renderManualList();showToast('マニュアルを削除しました'); }
+
+// ===== SURVEYS =====
+function toggleAddSurvey(){
+  const f=document.getElementById('addSurveyForm');
+  if(f.style.display==='none'||!f.style.display){
+    f.style.display='block'; sqQuestionCount=0;
+    document.getElementById('sqQuestions').innerHTML='';
+    buildRoleChecks('sqRoleChecks',true);
+    addSurveyQuestion(); // default question
+  }else{f.style.display='none';}
+}
+function addSurveyQuestion(){
+  sqQuestionCount++;
+  const n=sqQuestionCount;
+  const div=document.createElement('div'); div.className='sq-question-row'; div.id='sqq-'+n;
+  div.innerHTML=`
+    <input type="text" placeholder="質問${n}を入力" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" id="sqq-text-${n}">
+    <select style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px" id="sqq-type-${n}">
+      <option value="attendance">出欠（出席/欠席）</option>
+      <option value="yesno">可否（はい/いいえ）</option>
+      <option value="choice">選択肢</option>
+      <option value="text">自由記述</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('sqq-${n}').remove()">✕</button>`;
+  document.getElementById('sqQuestions').appendChild(div);
+}
+function updateAnonUI(){
+  const val=document.querySelector('input[name="sqAnon"]:checked')?.value;
+  document.getElementById('sqAnonLabel-named').style.borderColor=val==='named'?'var(--primary)':'var(--border)';
+  document.getElementById('sqAnonLabel-anon').style.borderColor=val==='anon'?'var(--primary)':'var(--border)';
+}
+function saveSurvey(){
+  const title=document.getElementById('sqTitle').value.trim();
+  const desc=document.getElementById('sqDesc').value.trim();
+  const deadline=document.getElementById('sqDeadline').value;
+  const targetRoles=getCheckedRoles('sqRoleChecks');
+  const anonymous=document.querySelector('input[name="sqAnon"]:checked')?.value==='anon';
+  if(!title)return showToast('タイトルを入力してください');
+  const qs=[];
+  document.querySelectorAll('[id^="sqq-"]:not([id*="-text-"]):not([id*="-type-"])').forEach(row=>{
+    const n=row.id.replace('sqq-','');
+    const text=(document.getElementById('sqq-text-'+n)||{}).value?.trim();
+    const type=(document.getElementById('sqq-type-'+n)||{}).value;
+    if(text)qs.push({id:Date.now()+Math.random(),text,type});
+  });
+  if(qs.length===0)return showToast('質問を1つ以上追加してください');
+  surveys.push({id:Date.now(),title,desc,creator:currentUser.id,deadline,targetRoles,anonymous,questions:qs,responses:{},createdAt:new Date().toISOString().slice(0,10)});
+  saveData();renderAdminSurveyList();updateSurveyBadge();
+  document.getElementById('addSurveyForm').style.display='none';
+  ['sqTitle','sqDesc','sqDeadline'].forEach(id=>document.getElementById(id).value='');
+  showToast(`「${title}」を${anonymous?'【匿名】':'【実名】'}で配信しました 🗳️`);
+}
+function renderAdminSurveyList(){
+  const list=document.getElementById('adminSurveyList');
+  if(!surveys.length){list.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px">アンケートがありません</p>';return;}
+  list.innerHTML=surveys.map(s=>{
+    const total=Object.keys(s.responses).length;
+    const targetCount=s.targetRoles.includes('all')?users.filter(u=>u.active).length:users.filter(u=>u.active&&s.targetRoles.includes(u.role)).length;
+    const anonBadge=s.anonymous?'<span style="font-size:11px;background:#f3e5f5;color:#6a1b9a;padding:2px 7px;border-radius:10px;margin-left:6px">🔒 匿名</span>':'<span style="font-size:11px;background:#e8f5e9;color:#2e7b32;padding:2px 7px;border-radius:10px;margin-left:6px">👤 実名</span>';
+    return`<div class="sq-admin-card">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div class="sq-title">${escHtml(s.title)}${anonBadge}</div>
+          <div class="sq-stat">回答 ${total}/${targetCount}名 ・ 期限：${s.deadline||'なし'}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="viewSurveyResults(${s.id})">結果確認</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSurvey(${s.id})">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function deleteSurvey(id){ if(!confirm('このアンケートを削除しますか？'))return; surveys=surveys.filter(s=>s.id!==id);saveData();renderAdminSurveyList();updateSurveyBadge();showToast('アンケートを削除しました'); }
+
+function viewSurveyResults(id){
+  const s=surveys.find(sv=>sv.id===id); if(!s)return;
+  const responseEntries=Object.entries(s.responses); // [[userId, responseObj], ...]
+  const total=responseEntries.length;
+  const anonBadge=s.anonymous
+    ?'<span style="font-size:12px;background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;margin-left:8px">🔒 匿名回答</span>'
+    :'<span style="font-size:12px;background:#e8f5e9;color:#2e7b32;padding:2px 8px;border-radius:10px;margin-left:8px">👤 実名回答</span>';
+
+  let html=`<div style="padding:20px">
+    <h3 style="margin-bottom:4px">📊 ${escHtml(s.title)}</h3>
+    <div style="margin-bottom:16px">${anonBadge}<span style="font-size:12px;color:var(--text-muted);margin-left:8px">回答者 ${total}名 ・ 期限：${s.deadline||'なし'}</span></div>`;
+
+  // 質問ごとの集計
+  s.questions.forEach(q=>{
+    html+=`<div style="margin-bottom:20px;padding:14px;background:var(--chat-bg);border-radius:10px">
+      <p style="font-weight:700;margin-bottom:10px;font-size:14px">${escHtml(q.text)}</p>`;
+    if(q.type==='attendance'||q.type==='yesno'){
+      const opts=q.type==='attendance'?['出席','欠席']:['はい','いいえ'];
+      opts.forEach(opt=>{
+        const respondents=responseEntries.filter(([,r])=>r[q.id]===opt);
+        const cnt=respondents.length;
+        const pct=total>0?Math.round(cnt/total*100):0;
+        html+=`<div class="result-bar-wrap"><div class="result-bar-label"><span>${opt}</span><span>${cnt}名 (${pct}%)</span></div>
+          <div class="result-bar-bg"><div class="result-bar-fill" style="width:${pct}%"></div></div>`;
+        // 実名の場合：名前一覧を表示
+        if(!s.anonymous&&respondents.length>0){
+          html+=`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:5px">`;
+          respondents.forEach(([uid])=>{
+            const u=getUser(Number(uid));
+            if(u)html+=`<span style="font-size:11px;background:#fff;border:1px solid var(--border);padding:2px 8px;border-radius:20px">${escHtml(u.name)}</span>`;
+          });
+          html+=`</div>`;
+        }
+        html+=`</div>`;
+      });
+    }else if(q.type==='text'){
+      const ans=responseEntries.filter(([,r])=>r[q.id]);
+      if(ans.length===0){
+        html+=`<p style="font-size:13px;color:var(--text-muted)">回答なし</p>`;
+      }else{
+        html+=`<div style="display:flex;flex-direction:column;gap:6px">`;
+        ans.forEach(([uid,r])=>{
+          const u=!s.anonymous?getUser(Number(uid)):null;
+          html+=`<div style="background:#fff;padding:8px 12px;border-radius:8px;border:1px solid var(--border)">
+            ${u?`<span style="font-size:11px;font-weight:700;color:var(--primary);margin-right:8px">${escHtml(u.name)}</span>`:''}
+            <span style="font-size:13px">${escHtml(r[q.id])}</span>
+          </div>`;
+        });
+        html+=`</div>`;
+      }
+    }
+    html+=`</div>`;
+  });
+
+  // 実名：未回答者一覧
+  if(!s.anonymous){
+    const targetUsers=s.targetRoles.includes('all')
+      ?users.filter(u=>u.active)
+      :users.filter(u=>u.active&&s.targetRoles.includes(u.role));
+    const noReply=targetUsers.filter(u=>!s.responses[u.id]);
+    if(noReply.length>0){
+      html+=`<div style="padding:12px;background:#fff8e1;border-radius:10px;border:1px solid #ffe082;margin-top:4px">
+        <p style="font-size:13px;font-weight:700;color:#f57f17;margin-bottom:8px">⏳ 未回答（${noReply.length}名）</p>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          ${noReply.map(u=>`<span style="font-size:12px;background:#fff;border:1px solid #ffe082;padding:3px 9px;border-radius:20px">${escHtml(u.name)}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+  }
+  html+=`</div>`;
+
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:620px;width:100%;max-height:85vh;overflow-y:auto">${html}<div style="padding:0 20px 20px"><button class="btn btn-ghost btn-sm" onclick="this.closest('div[style]').remove()">閉じる</button></div></div>`;
+  document.body.appendChild(overlay);
+}
+
+// User-facing survey
+function updateSurveyBadge(){
+  if(!currentUser)return;
+  const pending=surveys.filter(s=>{
+    const tgt=s.targetRoles.includes('all')||s.targetRoles.includes(currentUser.role);
+    return tgt&&!s.responses[currentUser.id];
+  }).length;
+  const badge=document.getElementById('surveyBadge');
+  badge.style.display=pending>0?'inline-block':'none';
+  badge.textContent=pending;
+}
+function renderSurveyUser(){
+  const el=document.getElementById('surveyListUser');
+  const my=surveys.filter(s=>s.targetRoles.includes('all')||s.targetRoles.includes(currentUser.role));
+  if(!my.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:40px">アンケートはありません</p>';return;}
+  el.innerHTML=my.map(s=>{
+    const done=!!s.responses[currentUser.id];
+    return`<div class="survey-card ${done?'responded':''}">
+      <div style="display:flex;align-items:start;justify-content:space-between">
+        <div><div class="survey-title">${escHtml(s.title)}</div><div class="survey-meta">${s.desc?escHtml(s.desc)+' ・ ':''} 期限：${s.deadline||'なし'}</div></div>
+        ${done?'<span style="color:var(--success);font-size:12px;font-weight:700">✅ 回答済み</span>':'<span style="color:var(--warning);font-size:12px;font-weight:700">⏳ 未回答</span>'}
+      </div>
+      <div id="sq-form-${s.id}">
+        ${done?renderSurveyDone(s):renderSurveyForm(s)}
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderSurveyForm(s){
+  return s.questions.map(q=>`
+    <div><div class="survey-q">${escHtml(q.text)}</div>
+    <div class="survey-options" id="sq-${s.id}-${q.id}">
+      ${q.type==='attendance'?
+        `<button class="survey-opt-btn attend" onclick="selectOpt(this,'${s.id}','${q.id}','出席')">✅ 出席</button><button class="survey-opt-btn absent" onclick="selectOpt(this,'${s.id}','${q.id}','欠席')">❌ 欠席</button>`
+        :q.type==='yesno'?
+        `<button class="survey-opt-btn" onclick="selectOpt(this,'${s.id}','${q.id}','はい')">👍 はい</button><button class="survey-opt-btn" onclick="selectOpt(this,'${s.id}','${q.id}','いいえ')">👎 いいえ</button>`
+        :q.type==='text'?
+        `<textarea class="survey-text-input" id="sqt-${s.id}-${q.id}" placeholder="ご回答をご記入ください" rows="3"></textarea>`
+        :''}
+    </div></div>`).join('')
+  +`<div style="margin-top:14px"><button class="btn btn-success btn-sm" onclick="submitSurvey(${s.id})">回答を送信</button></div>`;
+}
+function renderSurveyDone(s){
+  const r=s.responses[currentUser.id];
+  return s.questions.map(q=>`
+    <div style="margin-top:10px">
+      <div class="survey-q" style="font-size:13px;color:var(--text-muted)">${escHtml(q.text)}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--primary);padding:6px 0">${escHtml(r[q.id]||'─')}</div>
+    </div>`).join('');
+}
+function selectOpt(btn,sid,qid,val){
+  const group=document.getElementById('sq-'+sid+'-'+qid);
+  group.querySelectorAll('.survey-opt-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  btn.dataset.val=val;
+}
+function submitSurvey(sid){
+  const s=surveys.find(sv=>sv.id===sid); if(!s)return;
+  const ans={};
+  for(const q of s.questions){
+    if(q.type==='text'){
+      const ta=document.getElementById('sqt-'+sid+'-'+q.id);
+      ans[q.id]=ta?ta.value.trim():'';
+    }else{
+      const sel=document.querySelector(`#sq-${sid}-${q.id} .selected`);
+      if(!sel){showToast('すべての質問に回答してください');return;}
+      ans[q.id]=sel.dataset.val;
+    }
+  }
+  s.responses[currentUser.id]={submittedAt:new Date().toISOString(),...ans};
+  saveData(); updateSurveyBadge(); renderSurveyUser();
+  showToast('回答を送信しました ✅');
+}
+
+// ===== PASSWORD CHANGE =====
+function openChangePw(){
+  document.getElementById('pwCurrent').value='';
+  document.getElementById('pwNew').value='';
+  document.getElementById('pwConfirm').value='';
+  document.getElementById('pwError').textContent='';
+  document.getElementById('pwStrengthFill').style.width='0%';
+  document.getElementById('pwStrengthLabel').textContent='';
+  document.getElementById('changePwModal').classList.add('open');
+}
+function closeChangePw(){
+  document.getElementById('changePwModal').classList.remove('open');
+}
+
+function checkPwStrength(pw){
+  const fill=document.getElementById('pwStrengthFill');
+  const label=document.getElementById('pwStrengthLabel');
+  if(!pw){ fill.style.width='0%'; label.textContent=''; return; }
+  let score=0;
+  if(pw.length>=8)  score++;
+  if(pw.length>=12) score++;
+  if(/[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels=[
+    {w:'20%', color:'#e53935', text:'弱い'},
+    {w:'40%', color:'#fb8c00', text:'やや弱い'},
+    {w:'60%', color:'#fdd835', text:'普通'},
+    {w:'80%', color:'#7cb342', text:'強い'},
+    {w:'100%',color:'#2e7d5e', text:'非常に強い'},
+  ];
+  const lv=levels[Math.min(score,4)];
+  fill.style.width=lv.w; fill.style.background=lv.color;
+  label.textContent='強度：'+lv.text; label.style.color=lv.color;
+}
+
+function doChangePw(){
+  const cur=document.getElementById('pwCurrent').value;
+  const nw =document.getElementById('pwNew').value;
+  const cf =document.getElementById('pwConfirm').value;
+  const errEl=document.getElementById('pwError');
+  errEl.textContent='';
+
+  if(!cur||!nw||!cf){ errEl.textContent='すべての項目を入力してください'; return; }
+  if(cur!==currentUser.password){ errEl.textContent='現在のパスワードが正しくありません'; return; }
+  if(nw.length<6){ errEl.textContent='新しいパスワードは6文字以上にしてください'; return; }
+  if(nw!==cf){ errEl.textContent='新しいパスワードが一致していません'; return; }
+  if(nw===cur){ errEl.textContent='新しいパスワードは現在と異なるものを設定してください'; return; }
+
+  // 更新
+  const u=users.find(u=>u.id===currentUser.id);
+  if(u){ u.password=nw; currentUser.password=nw; saveData(); }
+  closeChangePw();
+  showToast('パスワードを変更しました 🔑', 3000);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ closeAdmin(); closeImgViewer(); closeChangePw(); }
+});
+document.getElementById('loginPassword').addEventListener('keydown',e=>{ if(e.key==='Enter')doLogin(); });
+
+// セッション引き継ぎ（シフト画面などから戻った時）
+(function(){
+  const session=localStorage.getItem('vs_session');
+  if(!session)return;
+  try{
+    const uid=JSON.parse(session);
+    const u=users.find(u=>u.id===uid);
+    if(u&&u.active){currentUser=u;startApp();}
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
