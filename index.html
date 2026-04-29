@@ -1066,8 +1066,6 @@ function startApp(){
   document.getElementById('navLogout').style.display='';
   // show hamburger on mobile after login
   if(window.innerWidth<=768) document.getElementById('topNavHam').style.display='flex';
-  const key=GEMINI_API_KEY||'';
-  document.getElementById('adminGeminiKey').value=key;
   renderChannels(); renderDMList(); updateSurveyBadge();
   const first=CHANNELS.find(c=>canAccess(c,u.role));
   if(first)selectChannel(first.id);
