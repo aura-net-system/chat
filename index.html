@@ -388,6 +388,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 @media(max-width:1050px){.bot-panel{width:270px}}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:#c5cdd6;border-radius:10px}
+.toggle-sw{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.toggle-sw input{opacity:0;width:0;height:0}
+.toggle-sw-sl{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.2s}
+.toggle-sw-sl:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle-sw input:checked+.toggle-sw-sl{background:var(--primary)}
+.toggle-sw input:checked+.toggle-sw-sl:before{transform:translateX(20px)}
 </style>
 </head>
 <body>
@@ -833,10 +839,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
             <button class="btn btn-primary btn-sm" onclick="saveGeminiKeyAdmin()">保存</button>
           </div>
           <div style="padding:15px;background:var(--chat-bg);border-radius:10px">
-            <div style="font-weight:700;margin-bottom:10px">🔒 セキュリティ設定</div>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;font-size:14px"><input type="checkbox" checked> 通信の暗号化（TLS）</label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;font-size:14px"><input type="checkbox" checked> セッションタイムアウト（30分）</label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox"> 二段階認証を強制</label>
+            <div style="font-weight:700;margin-bottom:12px">📱 端末制限</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="flex:1;font-size:13px;color:var(--text-muted)">登録した端末からのみログインを許可</div>
+              <label class="toggle-sw"><input type="checkbox" id="chat-toggle-device" onchange="chatToggleDevice(this.checked)"><span class="toggle-sw-sl"></span></label>
+            </div>
+            <div id="chat-device-list-wrap" style="display:none">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">※ 未承認の端末はログイン試行後に一覧に表示されます</div>
+              <div id="chat-device-list" style="max-height:200px;overflow-y:auto"></div>
+            </div>
+          </div>
+          <div style="padding:15px;background:var(--chat-bg);border-radius:10px">
+            <div style="font-weight:700;margin-bottom:12px">📶 Wi-Fi制限（IP制限）</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="flex:1;font-size:13px;color:var(--text-muted)">登録ネットワーク外からのログインを拒否</div>
+              <label class="toggle-sw"><input type="checkbox" id="chat-toggle-wifi" onchange="chatToggleWifi(this.checked)"><span class="toggle-sw-sl"></span></label>
+            </div>
+            <div id="chat-wifi-wrap" style="display:none">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">現在のIP: <b id="chat-current-ip">確認中…</b></div>
+              <div id="chat-ip-list" style="margin-bottom:8px"></div>
+              <div style="display:flex;gap:6px">
+                <input type="text" id="chat-new-ip" placeholder="例: 192.168.1." style="flex:1;padding:7px 10px;border:1px solid var(--border-color);border-radius:7px;font-size:13px">
+                <button class="btn btn-primary btn-sm" onclick="chatAddIP()">追加</button>
+              </div>
+              <button class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%" onclick="chatAddCurrentIP()">現在のIPを追加</button>
+            </div>
           </div>
           <div style="padding:15px;background:#fff3e0;border-radius:10px;border:1px solid #ffe0b2">
             <div style="font-weight:700;color:var(--warning);margin-bottom:8px">⚠️ データ管理</div>
@@ -1200,18 +1227,95 @@ function canAccess(ch,role){ return ch.roles.includes('all')||ch.roles.includes(
 function nowTime(){ return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}); }
 function canAccessManual(m){ if(!currentUser)return false; if(m.roles.includes('all'))return true; return m.roles.includes(currentUser.role)||m.roles.includes('admin'); }
 
+// ===== 端末管理・Wi-Fi制限 =====
+function getChatDeviceId(){
+  let id=localStorage.getItem('an_device_id');
+  if(!id){id='dev_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('an_device_id',id);}
+  return id;
+}
+function getChatDeviceSettings(){try{return JSON.parse(decData(localStorage.getItem('an_dev_s')))||{enabled:false,devices:[]};}catch{return{enabled:false,devices:[]};}}
+function saveChatDeviceSettings(d){localStorage.setItem('an_dev_s',encData(JSON.stringify(d)));}
+function getChatWifiSettings(){try{return JSON.parse(decData(localStorage.getItem('an_wifi_s')))||{enabled:false,allowedIPs:[]};}catch{return{enabled:false,allowedIPs:[]};}}
+function saveChatWifiSettings(d){localStorage.setItem('an_wifi_s',encData(JSON.stringify(d)));}
+async function fetchChatIP(){try{const r=await fetch('https://api.ipify.org?format=json');return(await r.json()).ip;}catch{return null;}}
+function chatRegisterDevice(){
+  const id=getChatDeviceId(),s=getChatDeviceSettings();
+  if(!s.devices.find(d=>d.id===id)){s.devices.push({id,label:'未設定',approved:false,firstSeen:new Date().toISOString(),lastSeen:new Date().toISOString()});}
+  else s.devices.find(d=>d.id===id).lastSeen=new Date().toISOString();
+  saveChatDeviceSettings(s);
+}
+function chatToggleDevice(on){
+  const s=getChatDeviceSettings(); s.enabled=on;
+  if(on){const id=getChatDeviceId();const d=s.devices.find(d=>d.id===id);if(!d)s.devices.push({id,label:'管理者端末',approved:true,firstSeen:new Date().toISOString(),lastSeen:new Date().toISOString()});else d.approved=true;}
+  saveChatDeviceSettings(s);
+  document.getElementById('chat-device-list-wrap').style.display=on?'block':'none';
+  renderChatAccessSettings(); addAuditLog('端末制限'+(on?'有効':'無効'));
+  showToast('端末制限を'+(on?'有効':'無効')+'にしました');
+}
+function chatApproveDevice(id){const s=getChatDeviceSettings();const d=s.devices.find(d=>d.id===id);if(d)d.approved=true;saveChatDeviceSettings(s);renderChatAccessSettings();addAuditLog('端末承認',id);showToast('端末を承認しました ✓');}
+function chatRemoveDevice(id){const s=getChatDeviceSettings();s.devices=s.devices.filter(d=>d.id!==id);saveChatDeviceSettings(s);renderChatAccessSettings();addAuditLog('端末削除',id);showToast('端末を削除しました');}
+function chatSetDeviceLabel(id){const inp=document.getElementById('cdn-'+id);if(!inp)return;const s=getChatDeviceSettings();const d=s.devices.find(d=>d.id===id);if(d)d.label=inp.value.trim()||'未設定';saveChatDeviceSettings(s);renderChatAccessSettings();showToast('端末名を更新しました ✓');}
+function chatToggleWifi(on){
+  const s=getChatWifiSettings(); s.enabled=on; saveChatWifiSettings(s);
+  document.getElementById('chat-wifi-wrap').style.display=on?'block':'none';
+  if(on)fetchChatIP().then(ip=>{const el=document.getElementById('chat-current-ip');if(el&&ip)el.textContent=ip;});
+  addAuditLog('Wi-Fi制限'+(on?'有効':'無効')); showToast('Wi-Fi制限を'+(on?'有効':'無効')+'にしました');
+}
+function chatAddIP(){const val=document.getElementById('chat-new-ip').value.trim();if(!val)return;const s=getChatWifiSettings();if(!s.allowedIPs.includes(val))s.allowedIPs.push(val);saveChatWifiSettings(s);document.getElementById('chat-new-ip').value='';renderChatAccessSettings();addAuditLog('許可IP追加',val);showToast('IPを追加しました ✓');}
+async function chatAddCurrentIP(){const ip=await fetchChatIP();if(!ip){showToast('IP取得できませんでした');return;}document.getElementById('chat-new-ip').value=ip.split('.').slice(0,3).join('.')+'.';}
+function chatRemoveIP(ip){const s=getChatWifiSettings();s.allowedIPs=s.allowedIPs.filter(x=>x!==ip);saveChatWifiSettings(s);renderChatAccessSettings();addAuditLog('許可IP削除',ip);showToast('IPを削除しました');}
+function renderChatAccessSettings(){
+  const ds=getChatDeviceSettings(),ws=getChatWifiSettings();
+  const td=document.getElementById('chat-toggle-device'),tw=document.getElementById('chat-toggle-wifi');
+  if(td)td.checked=ds.enabled; if(tw)tw.checked=ws.enabled;
+  document.getElementById('chat-device-list-wrap').style.display=ds.enabled?'block':'none';
+  document.getElementById('chat-wifi-wrap').style.display=ws.enabled?'block':'none';
+  const dl=document.getElementById('chat-device-list');
+  if(dl){const myId=getChatDeviceId();dl.innerHTML=ds.devices.length?ds.devices.map(d=>`<div style="border-bottom:1px solid var(--border-color);padding:7px 0"><div style="display:flex;gap:6px;margin-bottom:5px"><input type="text" id="cdn-${d.id}" value="${d.label}" placeholder="端末名" style="flex:1;padding:4px 8px;border:1px solid var(--border-color);border-radius:5px;font-size:12px"><button class="btn btn-ghost btn-sm" style="padding:4px 8px" onclick="chatSetDeviceLabel('${d.id}')">保存</button></div><div style="font-size:10px;color:var(--text-muted);margin-bottom:5px">ID: ${d.id}${d.id===myId?' (この端末)':''}</div><div style="display:flex;gap:5px">${!d.approved?`<button class="btn btn-primary btn-sm" style="flex:1;font-size:12px" onclick="chatApproveDevice('${d.id}')">承認</button>`:'<span style="flex:1;text-align:center;font-size:12px;color:var(--success)">✅ 承認済み</span>'}<button class="btn btn-ghost btn-sm" style="color:var(--danger);font-size:12px" onclick="chatRemoveDevice('${d.id}')">削除</button></div></div>`).join(''):'<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:8px">登録端末なし</div>';}
+  const il=document.getElementById('chat-ip-list');
+  if(il){il.innerHTML=ws.allowedIPs.length?ws.allowedIPs.map(ip=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border-color)"><span style="flex:1;font-size:13px;font-weight:600">${ip}*</span><button class="btn btn-ghost btn-sm" style="color:var(--danger);font-size:12px" onclick="chatRemoveIP('${ip}')">削除</button></div>`).join(''):'<div style="font-size:12px;color:var(--text-muted)">許可IPなし</div>';}
+  if(ws.enabled){const el=document.getElementById('chat-current-ip');if(el&&el.textContent==='確認中…')fetchChatIP().then(ip=>{if(el&&ip)el.textContent=ip;});}
+}
+
 // ===== LOGIN =====
 function fillDemo(e,p){
   document.getElementById('loginEmail').value=e;
   document.getElementById('loginPassword').value=p;
   document.getElementById('loginError').textContent='';
 }
-function doLogin(){
+async function doLogin(){
   const email=document.getElementById('loginEmail').value.trim();
   const pw=document.getElementById('loginPassword').value;
+  const errEl=document.getElementById('loginError');
+  errEl.textContent='';
   const user=users.find(u=>u.email===email&&u.password===pw);
-  if(!user){document.getElementById('loginError').textContent='メールアドレスまたはパスワードが正しくありません';return;}
-  if(!user.active){document.getElementById('loginError').textContent='このアカウントは無効化されています。管理者にお問い合わせください。';return;}
+  if(!user){errEl.textContent='メールアドレスまたはパスワードが正しくありません';return;}
+  if(!user.active){errEl.textContent='このアカウントは無効化されています。管理者にお問い合わせください。';return;}
+  // Wi-Fi制限チェック
+  const ws=getChatWifiSettings();
+  if(ws.enabled&&ws.allowedIPs.length>0){
+    const btn=document.querySelector('#loginScreen button[onclick="doLogin()"]');
+    if(btn)btn.textContent='確認中…';
+    const ip=await fetchChatIP();
+    if(btn)btn.textContent='ログイン';
+    if(ip&&!ws.allowedIPs.some(p=>ip.startsWith(p))){
+      errEl.textContent='施設のネットワーク外からはアクセスできません（IP: '+ip+'）';
+      addAuditLog('ログイン拒否（IP制限）',email+' / '+ip);
+      return;
+    }
+  }
+  // 端末制限チェック
+  const id=getChatDeviceId();
+  chatRegisterDevice();
+  const ds=getChatDeviceSettings();
+  if(ds.enabled){
+    const dev=ds.devices.find(d=>d.id===id);
+    if(!dev||!dev.approved){
+      errEl.innerHTML='この端末は未承認です。管理者に承認を依頼してください。<br><span style="font-size:10px;opacity:.7">端末ID: '+id+'</span>';
+      addAuditLog('ログイン拒否（端末未承認）',email+' / '+id);
+      return;
+    }
+  }
   currentUser=user;
   localStorage.setItem('vs_session', JSON.stringify(user.id));
   startApp();
@@ -1917,6 +2021,7 @@ function downloadCsvTemplate(){
 
 // ===== ADMIN =====
 function openAdmin(){
+  renderChatAccessSettings();
   if(currentUser.role!=='admin')return;
   addAuditLog('管理画面アクセス');
   renderUserTable(); renderManualList(); renderAdminSurveyList(); buildJobGroupChecks('manualRoleChecks'); buildRoleChecks('sqRoleChecks',true); renderAuditLog();
