@@ -405,7 +405,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
     <a class="nav-tab" href="ai-faq.html">✨ AI FAQ</a>
   </div>
   <div class="nav-right">
-    <span style="font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.5px;padding-right:4px">v7</span>
+    <span style="font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.5px;padding-right:4px">v8</span>
     <div class="user-pill" id="userPill" style="display:none">
       <div class="nav-avatar" id="navAvatar"></div>
       <div>
@@ -594,6 +594,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
         <button class="tab-btn" onclick="switchTab('manuals')">📚 マニュアル</button>
         <button class="tab-btn" onclick="switchTab('surveys')">🗳️ アンケート</button>
         <button class="tab-btn" onclick="switchTab('settings')">🔒 設定</button>
+        <button class="tab-btn" onclick="switchTab('auditlog')">📋 操作ログ</button>
       </div>
 
       <!-- USERS -->
@@ -859,10 +860,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
           </div>
           <div style="padding:15px;background:#fff3e0;border-radius:10px;border:1px solid #ffe0b2">
             <div style="font-weight:700;color:var(--warning);margin-bottom:8px">⚠️ データ管理</div>
-            <p style="font-size:13px;color:#555;margin-bottom:10px">メッセージは暗号化して保存されます。個人情報・医療情報の取り扱いに注意してください。</p>
-            <button class="btn btn-ghost btn-sm">データエクスポート</button>
+            <p style="font-size:13px;color:#555;margin-bottom:10px">localStorageは暗号化して保存されます。個人情報・医療情報の取り扱いに注意してください。</p>
+            <button class="btn btn-ghost btn-sm" onclick="exportAllData()">📥 データエクスポート（JSON）</button>
           </div>
         </div>
+      </div>
+      <!-- AUDIT LOG -->
+      <div class="tab-content" id="tab-auditlog">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <span style="font-size:14px;font-weight:700">📋 操作ログ（直近200件）</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="auditLog=[];localStorage.setItem('vs_audit',encData(JSON.stringify([])));renderAuditLog();showToast('ログを消去しました')">消去</button>
+            <button class="btn btn-primary btn-sm" onclick="exportAllData()">📥 エクスポート</button>
+          </div>
+        </div>
+        <div id="auditLogList"></div>
       </div>
     </div>
   </div>
@@ -1112,25 +1124,83 @@ const AVATAR_COLORS = ['#2e7d5e','#c62828','#1565c0','#6a1b9a','#e65100','#00695
 
 const GROQ_API_KEY = ['gsk_Or0ik9JY','q4M5EUJThZ','m2WGdyb3FY','XarbfX7ker','oaFT7HUzUlJNYo'].join('');
 
+// ===== SECURITY =====
+// localStorage 暗号化（XOR+Base64）
+const ENC_KEY=['AU','RA','_N','ET','_S','EC','_2','02','6_','K9','mP','xZ'].join('');
+function encData(str){
+  let r='';for(let i=0;i<str.length;i++)r+=String.fromCharCode(str.charCodeAt(i)^ENC_KEY.charCodeAt(i%ENC_KEY.length));
+  return 'E:'+btoa(unescape(encodeURIComponent(r)));
+}
+function decData(str){
+  try{
+    if(!str||!str.startsWith('E:'))return str;
+    const raw=decodeURIComponent(escape(atob(str.slice(2))));
+    let r='';for(let i=0;i<raw.length;i++)r+=String.fromCharCode(raw.charCodeAt(i)^ENC_KEY.charCodeAt(i%ENC_KEY.length));
+    return r;
+  }catch(e){return str;}
+}
+function loadSafe(key,fallback){
+  try{const raw=localStorage.getItem(key);if(!raw)return JSON.parse(JSON.stringify(fallback));return JSON.parse(decData(raw))||JSON.parse(JSON.stringify(fallback));}
+  catch(e){return JSON.parse(JSON.stringify(fallback));}
+}
+
+// 自動ログアウト（10分放置）
+let idleTimer=null,warnTimer=null;
+const IDLE_MS=10*60*1000;
+function resetIdle(){
+  if(!currentUser)return;
+  clearTimeout(idleTimer);clearTimeout(warnTimer);
+  warnTimer=setTimeout(()=>showToast('⚠️ 1分後に自動ログアウトします（操作なし）'),9*60*1000);
+  idleTimer=setTimeout(()=>{addAuditLog('自動ログアウト','10分間操作なし');showToast('セキュリティのため自動ログアウトしました');doLogout();},IDLE_MS);
+}
+function clearIdle(){clearTimeout(idleTimer);clearTimeout(warnTimer);}
+['mousemove','keydown','touchstart','click','scroll'].forEach(ev=>document.addEventListener(ev,resetIdle,{passive:true}));
+
 // ===== STATE =====
-// バージョンが変わったらlocalStorageをリセット（ドメイン変更等に対応）
-const DATA_VERSION = 'v7';
+const DATA_VERSION = 'v8';
 if(localStorage.getItem('vs_version') !== DATA_VERSION){
-  ['vs_users','vs_msgs','vs_manuals','vs_surveys'].forEach(k=>localStorage.removeItem(k));
+  ['vs_users','vs_msgs','vs_manuals','vs_surveys','vs_audit'].forEach(k=>localStorage.removeItem(k));
   localStorage.setItem('vs_version', DATA_VERSION);
 }
 
 let currentUser = null;
 let currentChannel = null;
-let users   = JSON.parse(localStorage.getItem('vs_users')   || 'null') || JSON.parse(JSON.stringify(DEFAULT_USERS));
-let messages= JSON.parse(localStorage.getItem('vs_msgs')    || 'null') || JSON.parse(JSON.stringify(SAMPLE_MSGS));
-let manuals = JSON.parse(localStorage.getItem('vs_manuals') || 'null') || JSON.parse(JSON.stringify(DEFAULT_MANUALS));
-let surveys = JSON.parse(localStorage.getItem('vs_surveys') || 'null') || JSON.parse(JSON.stringify(DEFAULT_SURVEYS));
+let users   = loadSafe('vs_users',   DEFAULT_USERS);
+let messages= loadSafe('vs_msgs',    SAMPLE_MSGS);
+let manuals = loadSafe('vs_manuals', DEFAULT_MANUALS);
+let surveys = loadSafe('vs_surveys', DEFAULT_SURVEYS);
+let auditLog= loadSafe('vs_audit',   []);
 let pendingFiles = [];
 let sqQuestionCount = 0;
 
 // ===== UTILS =====
-function saveData(){ localStorage.setItem('vs_users',JSON.stringify(users)); localStorage.setItem('vs_msgs',JSON.stringify(messages)); localStorage.setItem('vs_manuals',JSON.stringify(manuals)); localStorage.setItem('vs_surveys',JSON.stringify(surveys)); }
+function saveData(){
+  localStorage.setItem('vs_users',  encData(JSON.stringify(users)));
+  localStorage.setItem('vs_msgs',   encData(JSON.stringify(messages)));
+  localStorage.setItem('vs_manuals',encData(JSON.stringify(manuals)));
+  localStorage.setItem('vs_surveys',encData(JSON.stringify(surveys)));
+}
+// 操作ログ記録
+function addAuditLog(action,detail=''){
+  if(!currentUser)return;
+  auditLog.unshift({ts:new Date().toISOString(),uid:currentUser.id,name:currentUser.name,
+    role:ROLE_LABELS[currentUser.role]||currentUser.role,action,detail});
+  if(auditLog.length>500)auditLog=auditLog.slice(0,500);
+  localStorage.setItem('vs_audit',encData(JSON.stringify(auditLog)));
+}
+// データエクスポート
+function exportAllData(){
+  addAuditLog('データエクスポート','全データJSON形式');
+  const blob=new Blob([JSON.stringify({
+    exportedAt:new Date().toISOString(),version:DATA_VERSION,
+    users:users.map(u=>({...u,password:'***'})),
+    messages,manuals,surveys,auditLog:auditLog.slice(0,500)
+  },null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`AURA_NET_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();showToast('データをエクスポートしました');
+}
 function getUser(id){ return users.find(u=>u.id===id); }
 function avatarColor(id){ return AVATAR_COLORS[(id-1)%AVATAR_COLORS.length]; }
 function initials(n){ if(!n)return'?'; const p=n.trim().split(/\s+/); return p.length>=2?p[0][0]+p[1][0]:n.substring(0,2); }
@@ -1161,6 +1231,8 @@ function doLogout(){
   currentUser=null; currentChannel=null; localStorage.removeItem('vs_session');
   document.getElementById('app').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
+  addAuditLog('ログアウト');
+  clearIdle();
   document.getElementById('userPill').style.display='none';
   document.getElementById('navLogout').style.display='none';
   document.getElementById('navTabs').style.display='none';
@@ -1188,6 +1260,8 @@ function startApp(){
   document.getElementById('navTabs').style.display='flex';
   // show hamburger on mobile after login
   if(window.innerWidth<=768) document.getElementById('topNavHam').style.display='flex';
+  addAuditLog('ログイン');
+  resetIdle();
   renderChannels(); renderDMList(); updateSurveyBadge();
   const first=CHANNELS.find(c=>canAccess(c,u.role));
   if(first)selectChannel(first.id);
@@ -1324,8 +1398,8 @@ function sendMessage(){
   const key=currentChannel.id;
   if(!messages[key])messages[key]=[];
   const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-  if(pendingFiles.length>0){ pendingFiles.forEach(f=>messages[key].push({id:newId(),userId:currentUser.id,time:nowTime(),date:'今日',...f})); pendingFiles=[]; }
-  if(text){ messages[key].push({id:newId(),userId:currentUser.id,text,time:nowTime(),date:'今日'}); input.value=''; input.style.height='auto'; }
+  if(pendingFiles.length>0){ pendingFiles.forEach(f=>messages[key].push({id:newId(),userId:currentUser.id,time:nowTime(),date:'今日',...f})); pendingFiles=[]; addAuditLog('ファイル送信',currentChannel.name); }
+  if(text){ messages[key].push({id:newId(),userId:currentUser.id,text,time:nowTime(),date:'今日'}); addAuditLog('メッセージ送信',currentChannel.name); input.value=''; input.style.height='auto'; }
   saveData(); renderMessages();
 }
 function triggerAttach(){ document.getElementById('fileInput').click(); }
@@ -1855,7 +1929,8 @@ function downloadCsvTemplate(){
 // ===== ADMIN =====
 function openAdmin(){
   if(currentUser.role!=='admin')return;
-  renderUserTable(); renderManualList(); renderAdminSurveyList(); buildJobGroupChecks('manualRoleChecks'); buildRoleChecks('sqRoleChecks',true);
+  addAuditLog('管理画面アクセス');
+  renderUserTable(); renderManualList(); renderAdminSurveyList(); buildJobGroupChecks('manualRoleChecks'); buildRoleChecks('sqRoleChecks',true); renderAuditLog();
   document.getElementById('adminModal').classList.add('open'); switchTab('users');
 }
 function closeAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
@@ -1958,7 +2033,7 @@ function adminResetPw(id){
 }
 
 function toggleUserActive(id,active){ const u=users.find(u=>u.id===id);if(!u)return; u.active=active;saveData();renderUserTable(document.getElementById('userSearch').value);renderDMList();showToast(`${u.name}のアクセスを${active?'有効化':'停止'}しました`); }
-function deleteUser(id){ if(!confirm('この職員を削除しますか？'))return; users=users.filter(u=>u.id!==id);saveData();renderUserTable(document.getElementById('userSearch').value);renderDMList();showToast('職員を削除しました'); }
+function deleteUser(id){ if(!confirm('この職員を削除しますか？'))return; const tgt=users.find(u=>u.id===id); addAuditLog('職員削除',tgt?.name||''); users=users.filter(u=>u.id!==id);saveData();renderUserTable(document.getElementById('userSearch').value);renderDMList();showToast('職員を削除しました'); }
 function addUser(){
   const name=document.getElementById('newName').value.trim();
   const email=document.getElementById('newEmail').value.trim();
@@ -1968,6 +2043,7 @@ function addUser(){
   if(!name||!email||!pw){showToast('必須項目を入力してください');return;}
   if(users.find(u=>u.email===email)){showToast('このメールは既に登録されています');return;}
   users.push({id:Date.now(),name,email,password:pw,role,dept:dept||ROLE_LABELS[role],active:true});
+  addAuditLog('職員追加',name);
   saveData();showToast(`${name}を登録しました`);
   ['newName','newEmail','newPassword','newDept'].forEach(id=>document.getElementById(id).value='');
   switchTab('users');renderUserTable();renderDMList();
@@ -2084,13 +2160,14 @@ function saveManual(){
   if(!content)return showToast('内容を入力してください');
   if(checkedGroups.length===0)return showToast('参照できる職種グループを選択してください');
   manuals.push({id:Date.now(),name,category:cats,date:new Date().toISOString().slice(0,10),icon:'📄',roles,jobGroupLabels:checkedGroups,content});
+  addAuditLog('マニュアル追加',name);
   saveData();renderManualList();
   document.getElementById('addManualForm').style.display='none';
   ['manualName','manualContent'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('uploadFileName').textContent='';
   showToast(`「${name}」を登録しました。AIが参照します。`);
 }
-function deleteManual(id){ if(!confirm('このマニュアルを削除しますか？'))return; manuals=manuals.filter(m=>m.id!==id);saveData();renderManualList();showToast('マニュアルを削除しました'); }
+function deleteManual(id){ if(!confirm('このマニュアルを削除しますか？'))return; const tgt=manuals.find(m=>m.id===id); addAuditLog('マニュアル削除',tgt?.name||''); manuals=manuals.filter(m=>m.id!==id);saveData();renderManualList();showToast('マニュアルを削除しました'); }
 
 // ===== SURVEYS =====
 function toggleAddSurvey(){
@@ -2142,6 +2219,30 @@ function saveSurvey(){
   document.getElementById('addSurveyForm').style.display='none';
   ['sqTitle','sqDesc','sqDeadline'].forEach(id=>document.getElementById(id).value='');
   showToast(`「${title}」を${anonymous?'【匿名】':'【実名】'}で配信しました 🗳️`);
+}
+function renderAuditLog(){
+  const el=document.getElementById('auditLogList');if(!el)return;
+  if(!auditLog.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px">操作ログはありません</p>';return;}
+  const rows=auditLog.slice(0,200).map(l=>{
+    const d=new Date(l.ts);
+    const dt=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const actionColor={ログイン:'#43a047',ログアウト:'#8892a4','自動ログアウト':'#e53935','管理画面アクセス':'#1565c0','メッセージ送信':'#2e7d5e','マニュアル追加':'#2e7d5e','マニュアル削除':'#e53935','職員追加':'#2e7d5e','職員削除':'#e53935','データエクスポート':'#e65100','ファイル送信':'#6a1b9a'}[l.action]||'#555';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 7px;white-space:nowrap;color:var(--text-muted);font-size:11px">${dt}</td>
+      <td style="padding:5px 7px;font-weight:600;font-size:12px">${escHtml(l.name)}</td>
+      <td style="padding:5px 7px;color:var(--text-muted);font-size:11px">${escHtml(l.role)}</td>
+      <td style="padding:5px 7px"><span style="padding:2px 8px;background:${actionColor}22;color:${actionColor};border-radius:20px;font-weight:700;font-size:11px;white-space:nowrap">${escHtml(l.action)}</span></td>
+      <td style="padding:5px 7px;color:#555;font-size:12px">${escHtml(l.detail||'')}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--chat-bg);font-size:11px;font-weight:700;color:var(--text-muted)">
+      <th style="padding:6px 7px;text-align:left;border-bottom:1px solid var(--border)">日時</th>
+      <th style="padding:6px 7px;text-align:left;border-bottom:1px solid var(--border)">氏名</th>
+      <th style="padding:6px 7px;text-align:left;border-bottom:1px solid var(--border)">職種</th>
+      <th style="padding:6px 7px;text-align:left;border-bottom:1px solid var(--border)">操作</th>
+      <th style="padding:6px 7px;text-align:left;border-bottom:1px solid var(--border)">詳細</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function renderAdminSurveyList(){
   const list=document.getElementById('adminSurveyList');
