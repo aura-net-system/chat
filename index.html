@@ -942,6 +942,8 @@ const CHANNELS = [
     group:'clinic',  roles:['admin','doctor','manager','office-clinic','nurse-clinic','kyotaku']},
   {id:'clinic-ns',    name:'医院看護師グループ',     icon:'💉', desc:'医師・管理者・医院看護師の連携',
     group:'clinic',  roles:['admin','doctor','manager','nurse-clinic']},
+  {id:'clinic-office',name:'医院事務',               icon:'🗂️', desc:'管理者・医師・医院事務の連絡・請求業務',
+    group:'clinic',  roles:['admin','manager','doctor','office-clinic']},
   // ─── 施設グループ ───
   {id:'facility-ns',  name:'施設看護師グループ',     icon:'🩺', desc:'医師・管理者・施設看護師の連携',
     group:'facility',roles:['admin','doctor','manager','nurse-facility']},
@@ -985,6 +987,13 @@ const SAMPLE_MSGS = {
     {userId:4, text:'本日の外来患者様で、山田様（70代）の血糖値が高めでした。先生にご確認いただけますか？', time:'11:00', date:'今日'},
     {userId:2, text:'確認しました。次回受診時に検査を追加します。経過を記録しておいてください。', time:'11:15', date:'今日'},
     {userId:4, text:'承知しました。記録しておきます。', time:'11:18', date:'今日'},
+  ],
+  'clinic-office':[
+    {userId:3,  text:'今月のレセプト締め切りは5/10です。未完了の処方記録がある場合は早めにご確認ください。', time:'09:00', date:'今日'},
+    {userId:2,  text:'本日の訪問診療分の記録、15時までに入力しておきます。', time:'09:15', date:'今日'},
+    {userId:3,  text:'ありがとうございます。保険証の確認が必要な方が2名います。来院時に声かけします。', time:'09:20', date:'今日'},
+    {userId:12, text:'先月の自費請求の未収が3件あります。対応状況を週末までに教えてください。', time:'10:00', date:'今日'},
+    {userId:1,  text:'書類保管ルールを更新しました。新しいフォルダ構成で管理をお願いします。', time:'10:30', date:'今日'},
   ],
   'facility-ns':[
     {userId:5,  text:'鈴木先生、302号室の田中様のバイタルについてご相談があります。血圧が155/92mmHgと少し高めです。', time:'08:30', date:'今日'},
