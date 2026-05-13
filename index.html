@@ -253,6 +253,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 .modal-close{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer}
 .modal-close:hover{color:#fff}
 .modal-body{padding:22px}
+
+/* ===PRIVACY NOTICE=== */
+#privacyModal .modal{max-width:500px}
+#privacyModal .modal-header{background:linear-gradient(135deg,#b71c1c,#e53935)}
+.privacy-notice-banner{display:flex;align-items:center;gap:10px;padding:7px 18px;
+  background:#fff3e0;border-bottom:1px solid #ffcc80;font-size:12px;color:#e65100;flex-shrink:0}
+.privacy-notice-banner .pn-icon{font-size:16px;flex-shrink:0}
+.privacy-notice-banner strong{font-weight:700}
+.privacy-rule-list{list-style:none;margin:14px 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.privacy-rule-list li{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;
+  border-radius:10px;font-size:13px;line-height:1.5}
+.privacy-rule-list li.rule-ng{background:#fdecea;border-left:4px solid #e53935;color:#b71c1c}
+.privacy-rule-list li.rule-ok{background:#e8f5e9;border-left:4px solid #43a047;color:#1b5e20}
+.privacy-rule-list li .rule-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.privacy-check-area{display:flex;align-items:center;gap:10px;margin-top:18px;
+  padding:13px 16px;background:#f5f5f5;border-radius:10px;cursor:pointer}
+.privacy-check-area input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--primary)}
+.privacy-check-area label{font-size:13px;font-weight:600;color:#333;cursor:pointer}
 .tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--chat-bg);padding:4px;border-radius:10px}
 .tab-btn{flex:1;padding:7px;background:transparent;border:none;border-radius:8px;
   cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);transition:all .15s}
@@ -510,6 +528,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
 
     <!-- CHAT AREA -->
     <div class="chat-area">
+      <div class="privacy-notice-banner">
+        <span class="pn-icon">🔒</span>
+        <span><strong>個人情報（患者名・利用者名・診療内容等）はこのシステムに入力しないでください。</strong>業務連絡・マニュアル共有のみにご利用ください。</span>
+      </div>
       <div class="chat-header">
         <div style="font-size:22px" id="chatChannelIcon">🏘️</div>
         <div class="chat-header-info">
@@ -561,6 +583,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Y
     </div>
 
     <!-- BOT PANEL -->
+  </div>
+</div>
+
+<!-- PRIVACY NOTICE MODAL -->
+<div class="modal-overlay open" id="privacyModal" style="display:none;z-index:300">
+  <div class="modal">
+    <div class="modal-header">
+      <span style="font-size:22px">🔒</span>
+      <h2>個人情報取り扱いに関するご注意</h2>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#555;line-height:1.6">
+        AURA NET は業務連絡・情報共有を目的としたシステムです。<br>
+        <strong style="color:#e53935">以下の情報は入力しないでください。</strong>
+      </p>
+      <ul class="privacy-rule-list">
+        <li class="rule-ng"><span class="rule-icon">✕</span><div><strong>患者・利用者の個人情報</strong><br>氏名・生年月日・住所・診療内容・病名・介護認定情報など</div></li>
+        <li class="rule-ng"><span class="rule-icon">✕</span><div><strong>識別番号・カルテ情報</strong><br>患者番号・保険証番号・マイナンバーなど</div></li>
+        <li class="rule-ok"><span class="rule-icon">✓</span><div><strong>入力してよい情報</strong><br>業務連絡・シフト・マニュアル・スタッフ間の連絡事項</div></li>
+      </ul>
+      <p style="font-size:11px;color:#888;margin-top:4px">
+        ※ 個人情報が必要な場合は、カルテシステム等の専用システムをご利用ください。
+      </p>
+      <div class="privacy-check-area" onclick="document.getElementById('privacyChk').click()">
+        <input type="checkbox" id="privacyChk" onchange="document.getElementById('privacyOkBtn').disabled=!this.checked">
+        <label for="privacyChk">上記の内容を理解し、個人情報を入力しないことに同意します</label>
+      </div>
+      <button class="btn btn-primary" id="privacyOkBtn" style="margin-top:14px;background:#2e7d5e" disabled onclick="closePrivacyModal()">確認しました</button>
+    </div>
   </div>
 </div>
 
@@ -995,6 +1046,7 @@ const SAMPLE_MSGS = {
     {userId:2,  text:'承知しました。医院でも手指消毒の徹底を指示します。', time:'09:15', date:'今日'},
     {userId:10, text:'居宅支援でも利用者様へのご案内を実施します。', time:'09:20', date:'今日'},
     {userId:12, text:'各事業所管理者の皆さん、本日の対応状況を夕方までにご報告ください。', time:'09:35', date:'今日'},
+    {userId:1,  text:'【システム更新のお知らせ】ケアカルテシステムを v1.6 にアップデートしました。\n\n① フェイスシート 最終更新日表示\n　フェイスシートを開くと右上に最終更新日が表示されます。\n\n② 申し送りボード「居宅から」追加\n　居宅サービスからの申し送りセクションが追加されました。\n\n③ 申し送り 有効期限機能\n　登録時に「本日中・明日中・今週・今月・無期限」を選択可。期限切れは自動非表示（デフォルト24時間）。\n\n④ 感染・隔離管理 機能追加\n　ホーム「管理」→「🦠 感染管理」から利用者の感染・隔離状況を一覧管理できます。閲覧は全職員、登録・編集・削除は各事業所管理者・医師・全権管理者のみ。\n\nご不明な点はシステム管理者（山田）までご連絡ください。', time:'10:00', date:'今日'},
   ],
   management:[
     {userId:11, text:'今月の収支を確認しました。各事業所管理者から運営状況の報告をお願いします。', time:'09:00', date:'今日'},
@@ -1333,6 +1385,17 @@ function doLogout(){
   showToast('ログアウトしました');
 }
 
+function showPrivacyModal(){
+  const m=document.getElementById('privacyModal');
+  document.getElementById('privacyChk').checked=false;
+  document.getElementById('privacyOkBtn').disabled=true;
+  m.style.display='flex';
+}
+function closePrivacyModal(){
+  document.getElementById('privacyModal').style.display='none';
+  addAuditLog('個人情報注意事項確認');
+}
+
 // ===== APP =====
 function startApp(){
   document.getElementById('loginScreen').style.display='none';
@@ -1355,6 +1418,7 @@ function startApp(){
   if(window.innerWidth<=768) document.getElementById('topNavHam').style.display='flex';
   addAuditLog('ログイン');
   resetIdle();
+  showPrivacyModal();
   renderChannels(); renderDMList(); updateSurveyBadge();
   const first=CHANNELS.find(c=>canAccess(c,u.role));
   if(first)selectChannel(first.id);
